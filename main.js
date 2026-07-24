@@ -35,9 +35,18 @@ const {
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+import { storeDB } from './lib/store-db.js';
+
 // Global DB
 global.db = { data: { users: {}, chats: {}, settings: {} } };
 global.plugins = {};
+
+// Load saved prefix from SQLite database if available
+const savedPrefix = storeDB.getSetting('prefix');
+if (savedPrefix !== undefined && savedPrefix !== null) {
+    global.config = global.config || {};
+    global.config.prefix = savedPrefix;
+}
 global.prefix = global.config?.prefix || 'noprefix';
 
 // Error handlers
@@ -234,7 +243,10 @@ async function startBot() {
             let args = [];
             let text = '';
             
-            if (global.prefix === 'noprefix') {
+            // Dynamic prefix resolution (memastikan setprefix dari plugin & DB selalu up-to-date)
+            let activePrefix = storeDB.getSetting('prefix') || global.config?.prefix || global.prefix || '.';
+
+            if (activePrefix === 'noprefix') {
                 const match = m.text.match(/^[^\w\s]?/);
                 usedPrefix = match ? match[0] : '';
                 const textWithoutPrefix = m.text.slice(usedPrefix.length).trim();
@@ -243,8 +255,21 @@ async function startBot() {
                 args = parts.slice(1);
                 text = args.join(' ');
                 isCommand = !!command;
+            } else if (activePrefix === 'multi') {
+                const multiRegex = /^[°•π÷×¶∆£¢€¥®™+✓_=|~!?@#$%^&.©^]/i;
+                const match = m.text.match(multiRegex);
+                if (match) {
+                    usedPrefix = match[0];
+                    const textWithoutPrefix = m.text.slice(usedPrefix.length).trim();
+                    const parts = textWithoutPrefix.split(/\s+/);
+                    command = parts[0].toLowerCase();
+                    args = parts.slice(1);
+                    text = args.join(' ');
+                    isCommand = true;
+                }
             } else {
-                const match = m.text.match(prefixRegex);
+                const customRegex = new RegExp(`^[${activePrefix.replace(/[|\\{}()[\]^$+*?.]/g, '\\$&')}]`);
+                const match = m.text.match(customRegex);
                 if (match) {
                     usedPrefix = match[0];
                     const textWithoutPrefix = m.text.slice(usedPrefix.length).trim();

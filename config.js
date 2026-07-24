@@ -29,13 +29,13 @@ global.config = {
 };
 
 global.info = {
-    numberBot: '6285165613514',
-    pairingNumber: '6285165613514',
-    nameBot: 'STORE-BOT',
-    nameOwn: 'Izann',
+    numberBot: '6282328640486,
+    pairingNumber: '6282328640486',
+    nameBot: 'MARKONAH-STORE',
+    nameOwn: 'Izan',
     numberOwn: global.owner,
     author: 'zansxart',
-    wm: '© store-bot by zansxart',
+    wm: '© markonah-store',
     jid: '@s.whatsapp.net',
 };
 
@@ -70,7 +70,7 @@ global.payment = {
 global.store = {
     autoSend: true,         // Otomatis kirim stok setelah bayar (jika stok tersedia)
     paymentTimeout: 300,    // Timeout pembayaran dalam detik (5 menit)
-    notifGroup: '',         // JID grup untuk notifikasi transaksi (kosong = ke owner)
+    notifGroup: '120363235158363450@g.us',         // JID grup untuk notifikasi transaksi (kosong = ke owner)
     welcomeMsg: true,       // Kirim pesan selamat datang ke pembeli baru
 };
 
