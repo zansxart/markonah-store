@@ -95,59 +95,61 @@ function scheduleReconnect(reason = 'unknown') {
     }, wait);
 }
 
-// Session setup
-const sessionDir = path.resolve(`./${global.config?.sessions || 'sessions'}`);
-const { state, saveCreds } = await useMultiFileAuthState(sessionDir);
-
-// Signal Key in-memory caching wrapper (mencegah I/O lag yang bikin pairing timeout/gagal taut)
-const signalKeyCache = new Map();
-const originalKeys = state.keys;
-state.keys = {
-    get: async (type, ids) => {
-        const result = {};
-        const missingIds = [];
-        for (const id of ids) {
-            const cacheKey = `${type}-${id}`;
-            if (signalKeyCache.has(cacheKey)) {
-                result[id] = signalKeyCache.get(cacheKey);
-            } else {
-                missingIds.push(id);
-            }
-        }
-        if (missingIds.length > 0) {
-            const fetched = await originalKeys.get(type, missingIds);
-            for (const id of missingIds) {
-                const value = fetched[id];
-                const cacheKey = `${type}-${id}`;
-                if (value) {
-                    signalKeyCache.set(cacheKey, value);
-                }
-                result[id] = value;
-            }
-        }
-        return result;
-    },
-    set: async (data) => {
-        for (const type in data) {
-            for (const id in data[type]) {
-                const value = data[type][id];
-                const cacheKey = `${type}-${id}`;
-                if (value) {
-                    signalKeyCache.set(cacheKey, value);
-                } else {
-                    signalKeyCache.delete(cacheKey);
-                }
-            }
-        }
-        await originalKeys.set(data);
-    }
-};
-
 // Load plugins with onah engine (populates global.plugins AND global.pluginRuntime)
 const pluginDir = path.join(__dirname, 'plugins');
 await loadPlugins(pluginDir);
 
 async function startBot() {
+    teardownConn();
+
+    const sessionDir = path.resolve(`./${global.config?.sessions || 'sessions'}`);
+    if (!fs.existsSync(sessionDir)) fs.mkdirSync(sessionDir, { recursive: true });
+
+    const { state, saveCreds } = await useMultiFileAuthState(sessionDir);
+
+    const signalKeyCache = new Map();
+    const originalKeys = state.keys;
+    state.keys = {
+        get: async (type, ids) => {
+            const result = {};
+            const missingIds = [];
+            for (const id of ids) {
+                const cacheKey = `${type}-${id}`;
+                if (signalKeyCache.has(cacheKey)) {
+                    result[id] = signalKeyCache.get(cacheKey);
+                } else {
+                    missingIds.push(id);
+                }
+            }
+            if (missingIds.length > 0) {
+                const fetched = await originalKeys.get(type, missingIds);
+                for (const id of missingIds) {
+                    const value = fetched[id];
+                    const cacheKey = `${type}-${id}`;
+                    if (value) {
+                        signalKeyCache.set(cacheKey, value);
+                    }
+                    result[id] = value;
+                }
+            }
+            return result;
+        },
+        set: async (data) => {
+            for (const type in data) {
+                for (const id in data[type]) {
+                    const value = data[type][id];
+                    const cacheKey = `${type}-${id}`;
+                    if (value) {
+                        signalKeyCache.set(cacheKey, value);
+                    } else {
+                        signalKeyCache.delete(cacheKey);
+                    }
+                }
+            }
+            await originalKeys.set(data);
+        }
+    };
+
     let useQR = process.argv.includes('--qr') || global.config?.useQR === true;
     let phoneNumber = (global.info?.pairingNumber || global.info?.numberBot || '').replace(/[^0-9]/g, '');
 
@@ -240,10 +242,18 @@ async function startBot() {
 
     conn.ev.on('connection.update', (update) => {
         const { connection, lastDisconnect } = update;
+        const statusCode = lastDisconnect?.error?.output?.statusCode;
+        const isLoggedOut = statusCode === DisconnectReason.loggedOut || statusCode === 401;
+
         if (connection === 'close') {
-            const shouldReconnect = lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
-            console.log(chalk.red('Connection closed.'), shouldReconnect ? 'Reconnecting...' : 'Logged out.');
-            if (shouldReconnect) startBot();
+            if (isLoggedOut) {
+                console.log(chalk.red.bold('[AUTH] Session logged out (401)! Auto-clearing dead sessions...'));
+                try { fs.rmSync(sessionDir, { recursive: true, force: true }); } catch {}
+                scheduleReconnect('session_logged_out');
+            } else {
+                console.log(chalk.yellow('Connection closed. Reconnecting...'));
+                scheduleReconnect('connection_closed');
+            }
         } else if (connection === 'open') {
             console.log(chalk.green('✅ Connected to WhatsApp!'));
             if (process.send) {
@@ -251,7 +261,7 @@ async function startBot() {
                     type: 'dashboard',
                     botName: global.info?.botName || 'STORE BOT',
                     version: '1.0.0',
-                    plugins: Object.keys(global.plugins).length
+                    plugins: Object.keys(global.plugins || {}).length
                 });
             }
         }
