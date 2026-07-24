@@ -212,32 +212,8 @@ async function startBot() {
         }
     };
 
-    const isInteractive = process.stdout.isTTY && process.stdin.isTTY;
-    let useQR = process.argv.includes('--qr') || global.config?.useQR || false;
+    let useQR = process.argv.includes('--qr') || global.config?.useQR === true;
     let phoneNumber = (global.info?.pairingNumber || global.info?.numberBot || '').replace(/[^0-9]/g, '');
-
-    if (!state.creds.registered) {
-        if (isInteractive && !process.argv.includes('--qr') && !global.config?.useQR) {
-            console.clear();
-            console.log(chalk.cyan.bold('┏━━━〔 WHATSAPP LOGIN SETUP 〕━⬣'));
-            console.log(chalk.cyan('┃ 1. Pairing Code (Login via kode angka)'));
-            console.log(chalk.cyan('┃ 2. QR Code Scan (Login via scan QR)'));
-            console.log(chalk.cyan('┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━⬣\n'));
-
-            let choice = (await question(chalk.cyan(`Masukkan pilihan (1/2) [default: 1]: `))).trim();
-            if (choice === '2') {
-                useQR = true;
-            } else {
-                useQR = false;
-                let defaultNum = phoneNumber;
-                let inputNum = await question(chalk.cyan(`Masukkan nomor WA bot (contoh: 628xxx) [default: ${defaultNum || 'none'}]: `));
-                inputNum = inputNum.trim().replace(/[^0-9]/g, '');
-                if (inputNum) {
-                    phoneNumber = inputNum;
-                }
-            }
-        }
-    }
 
     const conn = makeWASocket({
         version,
