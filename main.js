@@ -15,21 +15,28 @@ import syntaxError from 'syntax-error';
 import chalk from 'chalk';
 import { storeDB } from './lib/store-db.js';
 
+import { loadMessage, makeWASocket, protoType, serialize } from './core/services/runtime/simple.js';
+import { handler } from './core/runtime/handler.js';
+import { getDirname, getFilename, getRequire } from './core/services/runtime/utils.js';
+
 const {
-    default: makeWASocket,
-    useMultiFileAuthState,
     DisconnectReason,
     fetchLatestBaileysVersion,
-    proto,
+    useMultiFileAuthState,
     jidNormalizedUser,
     Browsers
 } = baileys;
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+global.__filename = getFilename;
+global.__dirname = getDirname;
+global.__require = getRequire;
+
+const __dirname = global.__dirname(import.meta.url);
 
 // Global DB
-global.db = { data: { users: {}, chats: {}, settings: {} } };
+global.db = { data: { users: {}, chats: {}, settings: {}, stats: {} } };
 global.plugins = {};
+global.timestamp = { start: new Date() };
 
 // Load saved prefix from SQLite database if available
 const savedPrefix = storeDB.getSetting('prefix');
@@ -47,7 +54,77 @@ process.on('uncaughtException', (err) => {
     console.error(chalk.red('[UNCAUGHT EXCEPTION]'), err);
 });
 
+protoType();
+serialize();
+
 const msgRetryCounterCache = new NodeCache();
+
+// Reconnect guards (mencegah badai socket saat pairing / disconnect beruntun)
+let isConnecting = false;          // true selama satu siklus startBot berjalan
+let reconnectScheduled = false;    // true bila reconnect sudah dijadwalkan, hindari tumpukan
+let lastReconnectAt = 0;
+const RECONNECT_MIN_INTERVAL_MS = 5000;
+
+function scheduleReconnect(reason = 'unknown') {
+    if (reconnectScheduled) return;
+    const now = Date.now();
+    const wait = Math.max(RECONNECT_MIN_INTERVAL_MS - (now - lastReconnectAt), 1500);
+    reconnectScheduled = true;
+    console.log(chalk.yellow(`[RECONNECT] Dijadwalkan dalam ${Math.ceil(wait / 1000)}s (alasan: ${reason})`));
+    setTimeout(() => {
+        reconnectScheduled = false;
+        lastReconnectAt = Date.now();
+        startBot();
+    }, wait);
+}
+
+// Session setup
+const sessionDir = path.resolve(`./${global.config?.sessions || 'sessions'}`);
+const { state, saveCreds } = await useMultiFileAuthState(sessionDir);
+
+// Signal Key in-memory caching wrapper (mencegah I/O lag yang bikin pairing timeout/gagal taut)
+const signalKeyCache = new Map();
+const originalKeys = state.keys;
+state.keys = {
+    get: async (type, ids) => {
+        const result = {};
+        const missingIds = [];
+        for (const id of ids) {
+            const cacheKey = `${type}-${id}`;
+            if (signalKeyCache.has(cacheKey)) {
+                result[id] = signalKeyCache.get(cacheKey);
+            } else {
+                missingIds.push(id);
+            }
+        }
+        if (missingIds.length > 0) {
+            const fetched = await originalKeys.get(type, missingIds);
+            for (const id of missingIds) {
+                const value = fetched[id];
+                const cacheKey = `${type}-${id}`;
+                if (value) {
+                    signalKeyCache.set(cacheKey, value);
+                }
+                result[id] = value;
+            }
+        }
+        return result;
+    },
+    set: async (data) => {
+        for (const type in data) {
+            for (const id in data[type]) {
+                const value = data[type][id];
+                const cacheKey = `${type}-${id}`;
+                if (value) {
+                    signalKeyCache.set(cacheKey, value);
+                } else {
+                    signalKeyCache.delete(cacheKey);
+                }
+            }
+        }
+        await originalKeys.set(data);
+    }
+};
 
 // Plugins Loader
 const pluginDir = path.join(__dirname, 'plugins');
@@ -85,131 +162,35 @@ function watchPlugins() {
 }
 watchPlugins();
 
-// SMSG Helper
-function smsg(conn, m) {
-    if (!m) return m;
-    if (m.key) {
-        m.id = m.key.id;
-        m.isBaileys = m.id.startsWith('BAE5') && m.id.length === 16;
-        m.chat = m.key.remoteJid;
-        m.fromMe = m.key.fromMe;
-        m.isGroup = m.chat.endsWith('@g.us');
-        m.sender = jidNormalizedUser(m.fromMe && conn.user?.id || m.participant || m.key.participant || m.chat || '');
-    }
-    if (m.message) {
-        m.mtype = Object.keys(m.message)[0];
-        m.msg = m.message[m.mtype];
-        
-        if (m.mtype === 'conversation') m.text = m.message.conversation;
-        else if (m.mtype === 'extendedTextMessage') m.text = m.message.extendedTextMessage.text;
-        else if (m.mtype === 'imageMessage') m.text = m.message.imageMessage.caption;
-        else if (m.mtype === 'videoMessage') m.text = m.message.videoMessage.caption;
-        else if (m.mtype === 'documentMessage') m.text = m.message.documentMessage.caption;
-        else if (m.mtype === 'templateButtonReplyMessage') m.text = m.message.templateButtonReplyMessage.selectedId;
-        else if (m.mtype === 'interactiveResponseMessage') {
-            try {
-                const params = JSON.parse(m.message.interactiveResponseMessage.nativeFlowResponseMessage.paramsJson);
-                m.text = params.id;
-            } catch (e) {}
-        }
-        else if (m.mtype === 'buttonsResponseMessage') m.text = m.message.buttonsResponseMessage.selectedButtonId;
-        else if (m.mtype === 'listResponseMessage') m.text = m.message.listResponseMessage.singleSelectReply.selectedRowId;
-        else m.text = '';
-
-        m.quoted = m.msg?.contextInfo?.quotedMessage ? m.msg.contextInfo : null;
-        if (m.quoted) {
-            let type = Object.keys(m.quoted.quotedMessage)[0];
-            m.quoted.mtype = type;
-            m.quoted.msg = m.quoted.quotedMessage[type];
-            m.quoted.id = m.quoted.stanzaId;
-            m.quoted.chat = m.quoted.remoteJid || m.chat;
-            m.quoted.isBaileys = m.quoted.id ? m.quoted.id.startsWith('BAE5') && m.quoted.id.length === 16 : false;
-            m.quoted.sender = jidNormalizedUser(m.quoted.participant || '');
-            m.quoted.fromMe = m.quoted.sender === jidNormalizedUser(conn.user?.id);
-            m.quoted.text = m.quoted.msg?.text || m.quoted.msg?.caption || m.quoted.msg?.conversation || '';
-        }
-    }
-    
-    m.reply = (text, chatId = m.chat, options = {}) => conn.sendMessage(chatId, { text, ...options }, { quoted: m });
-    
-    return m;
-}
-
 async function startBot() {
-    const sessionDir = path.resolve(`./${global.config?.sessions || 'sessions'}`);
-    const { state, saveCreds } = await useMultiFileAuthState(sessionDir);
-    const { version } = await fetchLatestBaileysVersion();
-
-    // Signal keys in-memory cache wrapper (mencegah I/O lag yang bikin pairing timeout/gagal taut)
-    const signalKeyCache = new Map();
-    const originalKeys = state.keys;
-    state.keys = {
-        get: async (type, ids) => {
-            const result = {};
-            const missingIds = [];
-            for (const id of ids) {
-                const cacheKey = `${type}-${id}`;
-                if (signalKeyCache.has(cacheKey)) {
-                    result[id] = signalKeyCache.get(cacheKey);
-                } else {
-                    missingIds.push(id);
-                }
-            }
-            if (missingIds.length > 0) {
-                const fetched = await originalKeys.get(type, missingIds);
-                for (const id of missingIds) {
-                    const value = fetched[id];
-                    const cacheKey = `${type}-${id}`;
-                    if (value) {
-                        signalKeyCache.set(cacheKey, value);
-                    }
-                    result[id] = value;
-                }
-            }
-            return result;
-        },
-        set: async (data) => {
-            for (const type in data) {
-                for (const id in data[type]) {
-                    const value = data[type][id];
-                    const cacheKey = `${type}-${id}`;
-                    if (value) {
-                        signalKeyCache.set(cacheKey, value);
-                    } else {
-                        signalKeyCache.delete(cacheKey);
-                    }
-                }
-            }
-            await originalKeys.set(data);
-        }
-    };
-
     let useQR = process.argv.includes('--qr') || global.config?.useQR === true;
     let phoneNumber = (global.info?.pairingNumber || global.info?.numberBot || '').replace(/[^0-9]/g, '');
 
-    const conn = makeWASocket({
-        version,
+    const { version } = await fetchLatestBaileysVersion();
+
+    const connectionOptions = {
         pairingCode: !useQR,
-        logger: pino({ level: 'silent' }),
-        printQRInTerminal: useQR,
-        auth: state,
-        browser: Browsers.ubuntu('Chrome'),
         patchMessageBeforeSending: (msg) => msg,
         msgRetryCounterCache,
+        logger: pino({ level: 'silent' }),
+        auth: state,
+        browser: Browsers.ubuntu('Chrome'),
+        version,
+        getMessage: async (key) => {
+            const jid = jidNormalizedUser(key.remoteJid);
+            const loaded = await loadMessage(jid, key.id);
+            return loaded?.message || '';
+        },
         connectTimeoutMs: 60000,
         defaultQueryTimeoutMs: 60000,
         keepAliveIntervalMs: 25000,
         syncFullHistory: false,
         markOnlineOnConnect: false,
-        generateHighQualityLinkPreview: false
-    });
-    global.conn = conn;
-
-    conn.getName = (jid) => jid;
-
-    conn.reply = async (jid, text, quoted, options) => {
-        return conn.sendMessage(jid, { text, ...options }, { quoted });
+        generateHighQualityLinkPreview: false,
     };
+
+    let conn = global.conn = makeWASocket(connectionOptions);
+    conn.isInit = true;
 
     // ═════════════════════════════════════════
     // │  PAIRING CODE LOGIC (PERSIS SAMA DENGAN ONAH)
@@ -299,143 +280,9 @@ async function startBot() {
 
     conn.ev.on('messages.upsert', async (chatUpdate) => {
         try {
-            let m = chatUpdate.messages[0];
-            if (!m.message) return;
-            m.message = (Object.keys(m.message)[0] === 'ephemeralMessage') ? m.message.ephemeralMessage.message : m.message;
-            if (m.key && m.key.remoteJid === 'status@broadcast') return;
-            
-            m = smsg(conn, m);
-            
-            // Execute before hooks (for conversational flows like buy process)
-            for (let name in global.plugins) {
-                let plugin = global.plugins[name];
-                if (!plugin) continue;
-                if (typeof plugin.before === 'function') {
-                    try {
-                        let stop = await plugin.before(m, { conn, isOwner: sender === global.owner + '@s.whatsapp.net' || (global.mods && global.mods.some(mod => { const num = Array.isArray(mod) ? mod[0] : mod; return sender === num + '@s.whatsapp.net'; })) });
-                        if (stop) continue;
-                    } catch (e) {
-                        console.error(chalk.red(`Error in before hook ${name}:`), e);
-                    }
-                }
-            }
-
-            if (!m.text) return;
-
-            let isCommand = false;
-            let usedPrefix = '';
-            let command = '';
-            let args = [];
-            let text = '';
-            
-            // Dynamic prefix resolution
-            let activePrefix = storeDB.getSetting('prefix') || global.config?.prefix || global.prefix || '.';
-
-            if (activePrefix === 'noprefix') {
-                const match = m.text.match(/^[^\w\s]?/);
-                usedPrefix = match ? match[0] : '';
-                const textWithoutPrefix = m.text.slice(usedPrefix.length).trim();
-                const parts = textWithoutPrefix.split(/\s+/);
-                command = parts[0].toLowerCase();
-                args = parts.slice(1);
-                text = args.join(' ');
-                isCommand = !!command;
-            } else if (activePrefix === 'multi') {
-                const multiRegex = /^[°•π÷×¶∆£¢€¥®™+✓_=|~!?@#$%^&.©^]/i;
-                const match = m.text.match(multiRegex);
-                if (match) {
-                    usedPrefix = match[0];
-                    const textWithoutPrefix = m.text.slice(usedPrefix.length).trim();
-                    const parts = textWithoutPrefix.split(/\s+/);
-                    command = parts[0].toLowerCase();
-                    args = parts.slice(1);
-                    text = args.join(' ');
-                    isCommand = true;
-                }
-            } else {
-                const customRegex = new RegExp(`^[${activePrefix.replace(/[|\\{}()[\]^$+*?.]/g, '\\$&')}]`);
-                const match = m.text.match(customRegex);
-                if (match) {
-                    usedPrefix = match[0];
-                    const textWithoutPrefix = m.text.slice(usedPrefix.length).trim();
-                    const parts = textWithoutPrefix.split(/\s+/);
-                    command = parts[0].toLowerCase();
-                    args = parts.slice(1);
-                    text = args.join(' ');
-                    isCommand = true;
-                }
-            }
-
-            const sender = m.sender;
-            const isGroup = m.isGroup;
-            const participants = isGroup ? await (async () => {
-                const groupMetadata = await conn.groupMetadata(m.chat).catch(e => {});
-                return groupMetadata?.participants || [];
-            })() : [];
-            const botNumber = jidNormalizedUser(conn.user?.id || '');
-            const isBotAdmin = isGroup ? participants.some(p => p.id === botNumber && (p.admin === 'admin' || p.admin === 'superadmin')) : false;
-            const isAdmin = isGroup ? participants.some(p => p.id === sender && (p.admin === 'admin' || p.admin === 'superadmin')) : false;
-            const isROwner = sender === global.owner + '@s.whatsapp.net';
-            const isOwner = isROwner || (global.mods && global.mods.some(mod => {
-                const num = Array.isArray(mod) ? mod[0] : mod;
-                return sender === num + '@s.whatsapp.net';
-            }));
-
-            // Handler logic
-            for (let name in global.plugins) {
-                let plugin = global.plugins[name];
-                if (!plugin) continue;
-
-                const pluginCmds = Array.isArray(plugin.command) ? plugin.command : (typeof plugin.command === 'string' ? [plugin.command] : []);
-                
-                let isMatch = false;
-                if (plugin.command instanceof RegExp) {
-                    isMatch = plugin.command.test(command);
-                } else {
-                    isMatch = pluginCmds.includes(command);
-                }
-
-                if (isCommand && isMatch) {
-                    if (plugin.owner && !isOwner) {
-                        m.reply('Sorry, this command is only for the owner.');
-                        continue;
-                    }
-                    if (plugin.rowner && !isROwner) {
-                        m.reply('Sorry, this command is only for the real owner.');
-                        continue;
-                    }
-                    if (plugin.group && !isGroup) {
-                        m.reply('This command can only be used in groups.');
-                        continue;
-                    }
-                    if (plugin.private && isGroup) {
-                        m.reply('This command can only be used in private chat.');
-                        continue;
-                    }
-                    if (plugin.admin && !isAdmin && !isOwner) {
-                        m.reply('This command is only for group admins.');
-                        continue;
-                    }
-                    if (plugin.botAdmin && !isBotAdmin) {
-                        m.reply('Make the bot an admin first.');
-                        continue;
-                    }
-
-                    try {
-                        await plugin(m, {
-                            conn, text, args, command, usedPrefix, 
-                            isOwner, isROwner, isAdmin, isBotAdmin, participants
-                        });
-                    } catch (e) {
-                        console.error(chalk.red(`Error in plugin ${name}:`), e);
-                        m.reply('An error occurred while executing the command.');
-                    }
-                    break;
-                }
-            }
-            
+            await handler.call(conn, chatUpdate);
         } catch (e) {
-            console.error(chalk.red('Error in messages.upsert:'), e);
+            console.error(chalk.red('Error in handler:'), e);
         }
     });
 

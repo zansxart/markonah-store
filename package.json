@@ -1,26 +1,51 @@
 {
-  "name": "store-bot",
+  "name": "markonah-store",
   "version": "1.0.0",
   "description": "WhatsApp Store Bot by zansxart",
   "main": "index.js",
   "type": "module",
+  "directories": {
+    "core": "core",
+    "plugins": "plugins"
+  },
   "scripts": {
     "start": "node index.js"
   },
+  "keywords": [
+    "whatsapp-bot",
+    "whatsapp-store",
+    "markonah-store"
+  ],
   "author": "zansxart",
   "license": "GPL-3.0-or-later",
   "dependencies": {
     "@zansxart/baileys": "github:zansxart/baileysx",
+    "archiver": "^7.0.1",
+    "awesome-phonenumber": "^2.68.0",
+    "axios": "^1.11.0",
+    "better-sqlite3": "^11.0.0",
+    "boxen": "^8.0.1",
+    "canvas": "^3.1.2",
+    "cfonts": "^3.1.1",
     "chalk": "^5.0.1",
+    "cheerio": "^1.0.0",
     "chokidar": "^4.0.3",
+    "crc32": "^0.2.2",
+    "file-type": "^18.7.0",
+    "formdata-node": "^5.0.1",
+    "jimp": "^0.16.1",
     "lowdb": "^5.0.5",
+    "moment-timezone": "^0.5.41",
     "node-cache": "^5.1.2",
     "node-fetch": "^3.3.2",
+    "node-webpmux": "^3.2.1",
     "pino": "^8.11.0",
     "qrcode": "^1.5.4",
-    "better-sqlite3": "^11.0.0",
+    "qs": "^6.11.0",
+    "spinnies": "^0.5.1",
+    "sqlite": "^5.1.1",
+    "sqlite3": "^5.1.7",
     "syntax-error": "^1.4.0",
-    "yargs": "^17.7.1",
-    "cfonts": "^3.1.1"
+    "yargs": "^17.7.1"
   }
 }
