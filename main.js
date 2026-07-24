@@ -3,17 +3,17 @@
  * Instagram: https://instagram.com/zansxart
  */
 
-import './config.js'; // Assumes config.js exists or will be created
+import './config.js';
 import * as baileys from '@zansxart/baileys';
 import NodeCache from 'node-cache';
 import pino from 'pino';
-import readline from 'readline';
 import chokidar from 'chokidar';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath, pathToFileURL } from 'url';
 import syntaxError from 'syntax-error';
 import chalk from 'chalk';
+import { storeDB } from './lib/store-db.js';
 
 const {
     default: makeWASocket,
@@ -21,21 +21,11 @@ const {
     DisconnectReason,
     fetchLatestBaileysVersion,
     proto,
-    jidDecode,
-    areJidsSameUser,
-    generateWAMessage,
-    generateWAMessageContent,
-    generateWAMessageFromContent,
-    extractMessageContent,
-    Browsers,
-    downloadContentFromMessage,
-    prepareWAMessageMedia,
-    jidNormalizedUser
+    jidNormalizedUser,
+    Browsers
 } = baileys;
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
-import { storeDB } from './lib/store-db.js';
 
 // Global DB
 global.db = { data: { users: {}, chats: {}, settings: {} } };
@@ -51,24 +41,13 @@ global.prefix = global.config?.prefix || 'noprefix';
 
 // Error handlers
 process.on('unhandledRejection', (reason, promise) => {
-    console.error(chalk.red('Unhandled Rejection at:'), promise, chalk.red('reason:'), reason);
+    console.error(chalk.red('[UNHANDLED REJECTION]'), reason);
 });
 process.on('uncaughtException', (err) => {
-    console.error(chalk.red('Uncaught Exception:'), err);
+    console.error(chalk.red('[UNCAUGHT EXCEPTION]'), err);
 });
 
-// Setup prefix regex
-let prefixRegex;
-if (global.prefix === 'noprefix') {
-    prefixRegex = /^[^\w\s]?/; // matches empty or any single non-word symbol
-} else {
-    prefixRegex = new RegExp(`^[${global.prefix.replace(/[|\\{}()[\]^$+*?.]/g, '\\$&')}]`);
-}
-
 const msgRetryCounterCache = new NodeCache();
-
-const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-const question = (text) => new Promise((resolve) => rl.question(text, resolve));
 
 // Plugins Loader
 const pluginDir = path.join(__dirname, 'plugins');
@@ -84,7 +63,6 @@ async function loadPlugin(file) {
             return;
         }
         
-        // Cache bust
         const moduleUrl = `${pathToFileURL(file).href}?t=${Date.now()}`;
         const module = await import(moduleUrl);
         if (module.default) {
@@ -110,20 +88,18 @@ watchPlugins();
 // SMSG Helper
 function smsg(conn, m) {
     if (!m) return m;
-    let M = proto.WebMessageInfo;
     if (m.key) {
         m.id = m.key.id;
         m.isBaileys = m.id.startsWith('BAE5') && m.id.length === 16;
         m.chat = m.key.remoteJid;
         m.fromMe = m.key.fromMe;
         m.isGroup = m.chat.endsWith('@g.us');
-        m.sender = jidNormalizedUser(m.fromMe && conn.user.id || m.participant || m.key.participant || m.chat || '');
+        m.sender = jidNormalizedUser(m.fromMe && conn.user?.id || m.participant || m.key.participant || m.chat || '');
     }
     if (m.message) {
         m.mtype = Object.keys(m.message)[0];
         m.msg = m.message[m.mtype];
         
-        // Extract text
         if (m.mtype === 'conversation') m.text = m.message.conversation;
         else if (m.mtype === 'extendedTextMessage') m.text = m.message.extendedTextMessage.text;
         else if (m.mtype === 'imageMessage') m.text = m.message.imageMessage.caption;
@@ -149,13 +125,8 @@ function smsg(conn, m) {
             m.quoted.chat = m.quoted.remoteJid || m.chat;
             m.quoted.isBaileys = m.quoted.id ? m.quoted.id.startsWith('BAE5') && m.quoted.id.length === 16 : false;
             m.quoted.sender = jidNormalizedUser(m.quoted.participant || '');
-            m.quoted.fromMe = m.quoted.sender === jidNormalizedUser(conn.user.id);
+            m.quoted.fromMe = m.quoted.sender === jidNormalizedUser(conn.user?.id);
             m.quoted.text = m.quoted.msg?.text || m.quoted.msg?.caption || m.quoted.msg?.conversation || '';
-            m.getQuotedObj = async () => {
-                if (!m.quoted.id) return false;
-                let q = await conn.loadMessage(m.chat, m.quoted.id, conn);
-                return smsg(conn, q);
-            };
         }
     }
     
@@ -165,8 +136,9 @@ function smsg(conn, m) {
 }
 
 async function startBot() {
-    const { state, saveCreds } = await useMultiFileAuthState('sessions');
-    const { version, isLatest } = await fetchLatestBaileysVersion();
+    const sessionDir = path.resolve(`./${global.config?.sessions || 'sessions'}`);
+    const { state, saveCreds } = await useMultiFileAuthState(sessionDir);
+    const { version } = await fetchLatestBaileysVersion();
 
     // Signal keys in-memory cache wrapper (mencegah I/O lag yang bikin pairing timeout/gagal taut)
     const signalKeyCache = new Map();
@@ -247,11 +219,6 @@ async function startBot() {
     const PAIRING_RETRY_DELAY_MS = 3000;
     const PAIRING_SOCKET_WAIT_MS = 20000;
 
-    function isSocketClosedError(error) {
-        const message = String(error?.message || error || '');
-        return error?.output?.statusCode === DisconnectReason.connectionClosed || /Connection Closed/i.test(message);
-    }
-
     function isPairingSocketReady(targetConn = global.conn) {
         const ws = targetConn?.ws;
         if (!ws) return false;
@@ -300,7 +267,7 @@ async function startBot() {
 
     if (!conn.authState.creds.registered && !useQR) {
         if (!phoneNumber) {
-            console.error(chalk.red.bold('\n[PAIRING ERROR] Nomor bot belum diisi di config.js atau terminal!\n'));
+            console.error(chalk.red.bold('\n[PAIRING ERROR] Nomor bot belum diisi di config.js!\n'));
         } else {
             console.log(chalk.cyan(`[PAIRING] Requesting pairing code for +${phoneNumber}...`));
             setTimeout(() => {
@@ -361,7 +328,7 @@ async function startBot() {
             let args = [];
             let text = '';
             
-            // Dynamic prefix resolution (memastikan setprefix dari plugin & DB selalu up-to-date)
+            // Dynamic prefix resolution
             let activePrefix = storeDB.getSetting('prefix') || global.config?.prefix || global.prefix || '.';
 
             if (activePrefix === 'noprefix') {
@@ -405,7 +372,7 @@ async function startBot() {
                 const groupMetadata = await conn.groupMetadata(m.chat).catch(e => {});
                 return groupMetadata?.participants || [];
             })() : [];
-            const botNumber = jidNormalizedUser(conn.user.id);
+            const botNumber = jidNormalizedUser(conn.user?.id || '');
             const isBotAdmin = isGroup ? participants.some(p => p.id === botNumber && (p.admin === 'admin' || p.admin === 'superadmin')) : false;
             const isAdmin = isGroup ? participants.some(p => p.id === sender && (p.admin === 'admin' || p.admin === 'superadmin')) : false;
             const isROwner = sender === global.owner + '@s.whatsapp.net';
@@ -472,7 +439,6 @@ async function startBot() {
         }
     });
 
-    // IPC heartbeat
     if (process.send) {
         setInterval(() => {
             process.send({ type: 'heartbeat' });
