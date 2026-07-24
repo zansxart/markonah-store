@@ -46,6 +46,7 @@
     "sqlite": "^5.1.1",
     "sqlite3": "^5.1.7",
     "syntax-error": "^1.4.0",
+    "url-regex-safe": "^4.0.0",
     "yargs": "^17.7.1"
   }
 }
