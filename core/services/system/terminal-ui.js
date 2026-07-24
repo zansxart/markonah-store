@@ -244,6 +244,35 @@ export function showHeroBanner(options = {}) {
     );
 }
 
+export function hsvToRgb(h, s, v) {
+    let r, g, b;
+    const i = Math.floor(h * 6);
+    const f = h * 6 - i;
+    const p = v * (1 - s);
+    const q = v * (1 - f * s);
+    const t = v * (1 - (1 - f) * s);
+    switch (i % 6) {
+        case 0: r = v; g = t; b = p; break;
+        case 1: r = q; g = v; b = p; break;
+        case 2: r = p; g = v; b = t; break;
+        case 3: r = p; g = q; b = v; break;
+        case 4: r = t; g = p; b = v; break;
+        case 5: r = v; g = p; b = q; break;
+    }
+    return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
+}
+
+export function applyTrueColorGradient(text, hueOffset = 0) {
+    const chars = [...text];
+    const len = chars.length;
+    return chars.map((ch, idx) => {
+        if (ch === ' ' || ch === '\n') return ch;
+        const hue = (hueOffset + (idx / Math.max(1, len)) * 0.75) % 1.0;
+        const [r, g, b] = hsvToRgb(hue, 0.9, 1.0);
+        return `\x1b[38;2;${r};${g};${b}m${ch}\x1b[0m`;
+    }).join('');
+}
+
 export async function playBrailleCartAnimation(label = 'Loading Store Engine', durationMs = 1200) {
     if (!process.stdout.isTTY) return;
 
@@ -267,7 +296,7 @@ export async function playBrailleCartAnimation(label = 'Loading Store Engine', d
     process.stdout.write('\r' + ' '.repeat(75) + '\r');
 }
 
-export function showStoreCartBanner() {
+export function showStoreCartBanner(hueOffset = 0.1) {
     cfonts.say('STORE', {
         font: 'block',
         align: 'center',
@@ -277,16 +306,17 @@ export function showStoreCartBanner() {
         space: false
     });
 
-    const brailleFrame = chalk.hex(terminalTheme.dim)('⠂⠄⠠⠐⠠⠐⠠⠐⠠⠐⠠⠐⠠⠐⠠⠐⠠⠐⠠⠐⠠⠐⠠⠐⠠⠐⠠⠐⠠⠐⠠⠐⠠⠐⠠⠐⠠⠐⠠⠐⠠⠐⠠⠐⠠⠐⠠⠐⠠⠐');
+    const rawFrame = '⠂⠄⠠⠐⠠⠐⠠⠐⠠⠐⠠⠐⠠⠐⠠⠐⠠⠐⠠⠐⠠⠐⠠⠐⠠⠐⠠⠐⠠⠐⠠⠐⠠⠐⠠⠐⠠⠐⠠⠐⠠⠐⠠⠐⠠⠐⠠⠐⠠⠐';
+    const brailleFrame = applyTrueColorGradient(rawFrame, hueOffset);
     
     const cartLogo = [
         brailleFrame,
-        chalk.hex(terminalTheme.amber).bold('        🛒   M A R K O N A H   S T O R E   B O T   🛒'),
-        chalk.hex(terminalTheme.mint) ('     ⣴⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣦'),
-        chalk.hex(terminalTheme.mint) ('    ⢸⣿ [⡿⠿⠿⠿⠿⠿⠿⠿⠿⠿⠿⠿⠿⠿⠿⠿⠿⠿⠿⠿⠿⠿⠿⠿⠿⠿⠿⠿⠿⠿⢿] ⣿'),
-        chalk.hex(terminalTheme.sky)  ('    ⢸⣿    ⚡ Automatic Premium Account Store System ⚡    ⣿'),
-        chalk.hex(terminalTheme.sky)  ('     ⠙⢿⣦⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣴⡿⠋'),
-        chalk.hex(terminalTheme.rose) ('         (⠟)                                                (⠟)'),
+        applyTrueColorGradient('        🛒   M A R K O N A H   S T O R E   B O T   🛒', hueOffset + 0.1),
+        applyTrueColorGradient('     ⣴⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣦', hueOffset + 0.2),
+        applyTrueColorGradient('    ⢸⣿ [⡿⠿⠿⠿⠿⠿⠿⠿⠿⠿⠿⠿⠿⠿⠿⠿⠿⠿⠿⠿⠿⠿⠿⠿⠿⠿⠿⠿⠿⠿⢿] ⣿', hueOffset + 0.3),
+        applyTrueColorGradient('    ⢸⣿    ⚡ Automatic Premium Account Store System ⚡    ⣿', hueOffset + 0.4),
+        applyTrueColorGradient('     ⠙⢿⣦⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣴⡿⠋', hueOffset + 0.5),
+        applyTrueColorGradient('         (⠟)                                                (⠟)', hueOffset + 0.6),
         brailleFrame,
     ].join('\n');
 
