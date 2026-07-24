@@ -186,22 +186,59 @@ async function startBot() {
         return conn.sendMessage(jid, { text, ...options }, { quoted });
     };
 
-    // Pairing Code: langsung pakai nomor dari config.js, tidak perlu input terminal
+    // Pairing Code Flow: Otomatis dari config.js dengan retry jika WebSocket belum siap
     if (!useQR && !conn.authState.creds.registered) {
-        let phoneNumber = (global.info?.pairingNumber || global.info?.numberBot || '').replace(/[^0-9]/g, '');
+        const phoneNumber = (global.info?.pairingNumber || global.info?.numberBot || '').replace(/[^0-9]/g, '');
         if (!phoneNumber) {
-            console.error(chalk.red('[PAIRING] Nomor bot belum diatur! Set global.info.pairingNumber di config.js'));
+            console.error(chalk.red.bold('\n[PAIRING ERROR] Nomor bot belum diisi di config.js! (global.info.pairingNumber)\n'));
             process.exit(1);
         }
-        // Delay agar socket Baileys siap sebelum request pairing code
-        await new Promise(resolve => setTimeout(resolve, 3000));
-        try {
-            const code = await conn.requestPairingCode(phoneNumber);
-            console.log(chalk.green.bold(`\n[PAIRING CODE] ${code?.match(/.{1,4}/g)?.join('-') || code}`));
-            console.log(chalk.cyan(`Masukkan kode di atas ke WhatsApp > Perangkat Tertaut > Tautkan Perangkat\n`));
-        } catch (e) {
-            console.error(chalk.red('[PAIRING] Gagal request pairing code:'), e.message);
-        }
+
+        setTimeout(async () => {
+            let attempts = 0;
+            const maxAttempts = 12;
+            let success = false;
+
+            while (attempts < maxAttempts && !conn.authState.creds.registered && !success) {
+                attempts++;
+                try {
+                    // Tunggu hingga WebSocket benar-benar OPEN
+                    let ready = false;
+                    for (let i = 0; i < 30; i++) {
+                        const ws = conn.ws;
+                        if (ws && (ws.isOpen || ws.readyState === 1)) {
+                            ready = true;
+                            break;
+                        }
+                        await new Promise(r => setTimeout(r, 500));
+                    }
+
+                    if (!ready) {
+                        console.log(chalk.yellow(`[PAIRING] Menunggu WebSocket siap... (Percobaan ${attempts}/${maxAttempts})`));
+                        await new Promise(r => setTimeout(r, 2000));
+                        continue;
+                    }
+
+                    // Jeda sejenak agar handshake awal selesai
+                    await new Promise(r => setTimeout(r, 1500));
+
+                    const code = await conn.requestPairingCode(phoneNumber);
+                    const formattedCode = code?.match(/.{1,4}/g)?.join(' - ') || code;
+
+                    console.log('\n' + chalk.bgGreen.black.bold(' 🔑 PAIRING CODE TERSEDIA ') + '\n');
+                    console.log(chalk.green.bold(`  >>>  ${formattedCode}  <<<  \n`));
+                    console.log(chalk.cyan(`1. Buka WhatsApp di HP (${phoneNumber})`));
+                    console.log(chalk.cyan(`2. Ketuk Titik 3 > Perangkat Tertaut > Tautkan Perangkat`));
+                    console.log(chalk.cyan(`3. Pilih "Tautkan dengan nomor telepon saja"`));
+                    console.log(chalk.cyan(`4. Masukkan kode di atas: ${formattedCode}\n`));
+                    
+                    success = true;
+                } catch (err) {
+                    console.error(chalk.red(`[PAIRING ERROR] Gagal request pairing code (Percobaan ${attempts}/${maxAttempts}):`), err?.message || err);
+                    await new Promise(r => setTimeout(r, 3000));
+                }
+            }
+        }, 1000);
     }
 
     conn.ev.on('connection.update', (update) => {
