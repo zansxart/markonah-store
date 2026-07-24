@@ -29,7 +29,7 @@ global.config = {
 };
 
 global.info = {
-    numberBot: '6282328640486,
+    numberBot: '6282328640486',
     pairingNumber: '6282328640486',
     nameBot: 'MARKONAH-STORE',
     nameOwn: 'Izan',

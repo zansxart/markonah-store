@@ -168,37 +168,50 @@ async function startBot() {
     const { state, saveCreds } = await useMultiFileAuthState('sessions');
     const { version, isLatest } = await fetchLatestBaileysVersion();
 
+    const useQR = global.config?.useQR === true;
+
     const conn = makeWASocket({
         version,
         logger: pino({ level: 'silent' }),
-        printQRInTerminal: global.config?.useQR !== false,
+        printQRInTerminal: useQR,
         auth: state,
-        browser: ['STORE-BOT', 'Chrome', '4.0.0'],
+        browser: useQR ? Browsers.ubuntu('Chrome') : ['STORE-BOT', 'Chrome', '4.0.0'],
         msgRetryCounterCache,
         generateHighQualityLinkPreview: true
     });
     
-    conn.getName = (jid) => jid; // Placeholder for getName
+    conn.getName = (jid) => jid;
 
     conn.reply = async (jid, text, quoted, options) => {
         return conn.sendMessage(jid, { text, ...options }, { quoted });
     };
 
-    if (global.config?.useQR === false && !conn.authState.creds.registered) {
-        let phoneNumber = await question('Please enter your WhatsApp number (e.g. 628xxx):\n');
-        phoneNumber = phoneNumber.replace(/[^0-9]/g, '');
-        const code = await conn.requestPairingCode(phoneNumber);
-        console.log(chalk.green(`Pairing Code: ${code?.match(/.{1,4}/g)?.join('-') || code}`));
+    // Pairing Code: langsung pakai nomor dari config.js, tidak perlu input terminal
+    if (!useQR && !conn.authState.creds.registered) {
+        let phoneNumber = (global.info?.pairingNumber || global.info?.numberBot || '').replace(/[^0-9]/g, '');
+        if (!phoneNumber) {
+            console.error(chalk.red('[PAIRING] Nomor bot belum diatur! Set global.info.pairingNumber di config.js'));
+            process.exit(1);
+        }
+        // Delay agar socket Baileys siap sebelum request pairing code
+        await new Promise(resolve => setTimeout(resolve, 3000));
+        try {
+            const code = await conn.requestPairingCode(phoneNumber);
+            console.log(chalk.green.bold(`\n[PAIRING CODE] ${code?.match(/.{1,4}/g)?.join('-') || code}`));
+            console.log(chalk.cyan(`Masukkan kode di atas ke WhatsApp > Perangkat Tertaut > Tautkan Perangkat\n`));
+        } catch (e) {
+            console.error(chalk.red('[PAIRING] Gagal request pairing code:'), e.message);
+        }
     }
 
     conn.ev.on('connection.update', (update) => {
         const { connection, lastDisconnect } = update;
         if (connection === 'close') {
-            const shouldReconnect = lastDisconnect.error?.output?.statusCode !== DisconnectReason.loggedOut;
+            const shouldReconnect = lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
             console.log(chalk.red('Connection closed.'), shouldReconnect ? 'Reconnecting...' : 'Logged out.');
             if (shouldReconnect) startBot();
         } else if (connection === 'open') {
-            console.log(chalk.green('Opened connection'));
+            console.log(chalk.green('✅ Connected to WhatsApp!'));
             if (process.send) {
                 process.send({
                     type: 'dashboard',
