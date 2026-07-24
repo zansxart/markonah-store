@@ -13,20 +13,26 @@ let handler = async (m, { conn, args, usedPrefix }) => {
         return m.reply(`❌ Tidak ada produk${category ? ` di kategori *${category}*` : ''}.`);
     }
     
-    let text = `┏━━━〔 🛒 KATALOG PRODUK 〕━⬣\n`;
+    let text = `🛍️ *KATALOG PRODUK STORE*\n_Daftar produk & stok otomatis_\n\n`;
     
     let currentCat = '';
     for (let p of products) {
         if (!category && currentCat !== p.category) {
             currentCat = p.category;
-            text += `\n┃ 📦 *KATEGORI: ${currentCat.toUpperCase()}*\n`;
+            text += `📁 *KATEGORI: ${currentCat.toUpperCase()}*\n`;
         }
         let stockCount = storeDB.getStockCount(p.id);
-        let stockStatus = stockCount > 0 ? 'READY' : 'KOSONG';
-        text += `┃ ✦ ID: ${p.id}\n┃ ✦ Nama: ${p.name}\n┃ ✦ Harga: Rp ${rp(p.price)}\n┃ ✦ Stok: ${stockStatus} (${stockCount})\n┃ ✦ Desc: ${p.description || '-'}\n┃\n`;
+        let stockBadge = stockCount > 0 ? `✅ READY (${stockCount})` : `❌ KOSONG`;
+        
+        text += `╭── 📦 *${p.name}*\n`;
+        text += `│ 🆔 Kode : \`${p.id}\`\n`;
+        text += `│ 💰 Harga : *Rp ${rp(p.price)}*\n`;
+        text += `│ 📊 Stok : ${stockBadge}\n`;
+        if (p.description) text += `│ 📝 Ket : _${p.description}_\n`;
+        text += `╰───────────────────\n\n`;
     }
     
-    text += `┗━━━━━━━━━━━━━━━━⬣\n\n💡 Ketik *${usedPrefix}buy <id>* untuk membeli.`;
+    text += `💡 *Cara Beli:* Ketik \`${usedPrefix}buy <kode_produk>\`\n_Contoh:_ \`${usedPrefix}buy ${products[0]?.id || 'netflix'}\``;
     
     m.reply(text);
 };

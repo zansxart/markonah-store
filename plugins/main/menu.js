@@ -14,53 +14,56 @@ let handler = async (m, { conn, usedPrefix }) => {
         trx: storeDB.getAllTransactions().length
     };
     
-    let botName = global.info?.botName || 'STORE BOT';
+    let botName = global.info?.nameBot || global.info?.botName || 'MARKONAH STORE';
     let date = new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
     let time = new Date().toLocaleTimeString('id-ID');
     
     const readMore = String.fromCharCode(8206).repeat(4001);
 
-    let menuText = `┏━━━〔 🏪 ${botName} 〕━⬣
-┃ ✦ Date: ${date}
-┃ ✦ Time: ${time}
-┃
-┃ ✦ Products: ${stats.products}
-┃ ✦ Stock: ${stats.stock}
-┃ ✦ Transactions: ${stats.trx}
-┗━━━━━━━━━━━━━━━━⬣
+    let menuText = `⚡ *${botName.toUpperCase()}* ⚡
+_Automatic Store Bot System_
+
+Halo *@${m.sender.split('@')[0]}* 👋
+
+╭─── 📊 *SYSTEM INFO*
+│ 📅 Date : ${date}
+│ ⏰ Time : ${time}
+│ 📦 Total Produk : *${stats.products}*
+│ 🔑 Total Stok : *${stats.stock}*
+│ 💳 Transaksi : *${stats.trx}*
+╰───────────────────
 ${readMore}
-┏━━━〔 🛒 STORE MENU 〕━⬣
-┃ ◕ ${usedPrefix}katalog - Lihat semua produk
-┃ ◕ ${usedPrefix}buy <id> - Beli produk
-┃ ◕ ${usedPrefix}buy <id> <qty> - Beli beberapa
-┃ ◕ ${usedPrefix}cektrx <invoice> - Cek status transaksi
-┃ ◕ ${usedPrefix}riwayat - Riwayat transaksi
-┃ ◕ ${usedPrefix}bataltrx - Batalkan transaksi
-┗━━━━━━━━━━━━━━━━⬣
+╭─── 🛒 *CUSTOMER MENU*
+│ › \`${usedPrefix}katalog\` ── Katalog Produk
+│ › \`${usedPrefix}buy <id>\` ── Beli Produk
+│ › \`${usedPrefix}cektrx <invoice>\` ── Cek Status Order
+│ › \`${usedPrefix}riwayat\` ── Riwayat Belanja
+│ › \`${usedPrefix}bataltrx\` ── Batalkan Transaksi
+╰───────────────────
 
-┏━━━〔 👑 OWNER MENU 〕━⬣
-┃ ◕ ${usedPrefix}addproduk - Tambah produk
-┃ ◕ ${usedPrefix}delproduk <id> - Hapus produk
-┃ ◕ ${usedPrefix}editproduk - Edit produk
-┃ ◕ ${usedPrefix}addstok <id> - Tambah stok
-┃ ◕ ${usedPrefix}liststok - Lihat semua stok
-┃ ◕ ${usedPrefix}proses <invoice> - Proses pesanan
-┃ ◕ ${usedPrefix}done <invoice> - Selesaikan pesanan
-┃ ◕ ${usedPrefix}kirim <invoice> - Kirim produk manual
-┃ ◕ ${usedPrefix}batal <invoice> - Batalkan pesanan
-┃ ◕ ${usedPrefix}setqris <data> - Set QRIS
-┃ ◕ ${usedPrefix}setprefix <prefix> - Set prefix
-┃ ◕ ${usedPrefix}broadcast <text> - Broadcast
-┃ ◕ ${usedPrefix}rekap - Rekap transaksi
-┗━━━━━━━━━━━━━━━━⬣
+╭─── 👑 *ADMIN & OWNER*
+│ › \`${usedPrefix}addproduk\` ── Tambah Produk
+│ › \`${usedPrefix}delproduk <id>\` ── Hapus Produk
+│ › \`${usedPrefix}addstok <id>\` ── Isi Stok Produk
+│ › \`${usedPrefix}liststok\` ── Cek Stok Akun
+│ › \`${usedPrefix}proses <invoice>\` ── Proses Pesanan
+│ › \`${usedPrefix}done <invoice>\` ── Selesai & Kirim
+│ › \`${usedPrefix}kirim <invoice>\` ── Kirim Manual
+│ › \`${usedPrefix}batal <invoice>\` ── Batal Pesanan
+│ › \`${usedPrefix}setqris <data>\` ── Update QRIS
+│ › \`${usedPrefix}setprefix <prefix>\` ── Ubah Prefix
+│ › \`${usedPrefix}rekap\` ── Rekap Omset
+╰───────────────────
 
-${global.info?.wm || 'Store Bot By zansxart'}`;
+_© markonah-store by zansxart_
+_Instagram: https://instagram.com/zansxart_`;
 
-    let imageUrl = global.media?.thumbnail || 'https://telegra.ph/file/default.jpg';
+    let imageUrl = global.media?.thumbnail || 'https://files.catbox.moe/9ibkfl.jpg';
     
     await conn.sendMessage(m.chat, {
         image: { url: imageUrl },
-        caption: menuText
+        caption: menuText,
+        mentions: [m.sender]
     }, { quoted: m });
 };
 
