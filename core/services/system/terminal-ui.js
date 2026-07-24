@@ -243,3 +243,49 @@ export function showHeroBanner(options = {}) {
         })
     );
 }
+
+export function showStoreCartBanner() {
+    cfonts.say('STORE', {
+        font: 'block',
+        align: 'center',
+        gradient: [terminalTheme.amber, terminalTheme.mint, terminalTheme.sky],
+        transitionGradient: true,
+        letterSpacing: 1,
+        space: false
+    });
+
+    const cartLogo = [
+        chalk.hex(terminalTheme.dim)('             ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·'),
+        chalk.hex(terminalTheme.amber).bold('                 🛒   M A R K O N A H   S T O R E   B O T   🛒'),
+        chalk.hex(terminalTheme.mint) ('             .-------------------------------------------------.'),
+        chalk.hex(terminalTheme.mint) ('            /  [≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡]  \\'),
+        chalk.hex(terminalTheme.sky)  ('           |   ⚡ Automatic Premium Account Store System ⚡    |'),
+        chalk.hex(terminalTheme.sky)  ('            \\  `---------------------------------------------\'  /'),
+        chalk.hex(terminalTheme.rose) ('             `---------(o)-------------------------(o)------\''),
+        chalk.hex(terminalTheme.dim)('             ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·'),
+    ].join('\n');
+
+    console.log(cartLogo + '\n');
+}
+
+export function showPairingCodePanel(phoneNumber, code) {
+    const formattedCode = formatCodeGroups(code, 4, ' - ');
+    console.log(renderPanel({
+        eyebrow: 'WhatsApp Pairing Unlocked',
+        title: gradientText('PAIRING CODE', [terminalTheme.mint, terminalTheme.sky, terminalTheme.amber]),
+        subtitle: chalk.hex(terminalTheme.text).bold(`  >>>  ${formattedCode}  <<<  `),
+        lines: [
+            renderKeyValueRows({
+                'Phone Number': `+${phoneNumber}`,
+                'Pairing Code': formattedCode,
+                'Status': 'Waiting for WA verification',
+            }, { keyWidth: 14 }),
+            '',
+            statusLine('info', '1. Buka WhatsApp di HP > Perangkat Tertaut > Tautkan Perangkat'),
+            statusLine('info', '2. Pilih "Tautkan dengan nomor telepon saja"'),
+            statusLine('success', `3. Masukkan kode persis: ${formattedCode}`),
+        ],
+        accent: terminalTheme.mint,
+        backgroundColor: terminalTheme.panelAlt,
+    }));
+}

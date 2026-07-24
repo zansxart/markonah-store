@@ -6,9 +6,9 @@
 import { spawn } from 'child_process';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import CFonts from 'cfonts';
 import chalk from 'chalk';
-import './config.js'; // Assumes config.js exists or will be created
+import './config.js';
+import { showStoreCartBanner, animateProgress } from './core/services/system/terminal-ui.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -18,9 +18,11 @@ let lastRestart = Date.now();
 const MAX_RESTARTS = 3;
 const RESTART_WINDOW = 10000;
 
-function start() {
+async function start() {
     if (isRunning) return;
     isRunning = true;
+
+    await animateProgress('Launching Store Runtime', { duration: 700, width: 28 });
 
     const child = spawn(process.argv[0], [path.join(__dirname, 'main.js'), ...process.argv.slice(2)], {
         stdio: ['inherit', 'inherit', 'inherit', 'ipc']
@@ -40,16 +42,7 @@ function start() {
             // Heartbeat received
         } else if (msg.type === 'dashboard') {
             console.clear();
-            CFonts.say(msg.botName || 'STORE BOT', {
-                font: 'block',
-                align: 'center',
-                colors: ['cyan', 'blue'],
-                background: 'transparent',
-                letterSpacing: 1,
-                lineHeight: 1,
-                space: true,
-                maxLength: '0',
-            });
+            showStoreCartBanner();
             console.log(chalk.cyan('┏━━━〔 DASHBOARD 〕━⬣'));
             console.log(chalk.cyan('┃ ✦ ') + chalk.white(`Name: ${msg.botName}`));
             console.log(chalk.cyan('┃ ✦ ') + chalk.white(`Version: ${msg.version}`));
@@ -79,7 +72,6 @@ function start() {
         setTimeout(() => start(), 2000);
     });
 
-    // Graceful shutdown
     process.on('SIGINT', () => {
         console.log(chalk.yellow('\nGracefully shutting down from SIGINT (Ctrl-C)'));
         child.kill('SIGTERM');

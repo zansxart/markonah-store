@@ -19,6 +19,7 @@ import { loadMessage, makeWASocket, protoType, serialize } from './core/services
 import { handler } from './core/runtime/handler.js';
 import { getDirname, getFilename, getRequire } from './core/services/runtime/utils.js';
 import { loadPlugins } from './core/services/runtime/plugins.js';
+import { animateProgress, showPairingCodePanel, statusLine, terminalTheme } from './core/services/system/terminal-ui.js';
 
 const {
     DisconnectReason,
@@ -213,18 +214,14 @@ async function startBot() {
 
     async function runDirectPairing(targetPhone, attempt = 1) {
         try {
+            await animateProgress('Connecting to WA Socket', { duration: 600, width: 24, accent: terminalTheme.sky });
             const activeConn = await waitForPairingSocketOpen();
             if (!activeConn) throw new Error('Connection Closed');
 
+            await animateProgress('Minting Pairing Code', { duration: 1000, width: 28, accent: terminalTheme.mint, glow: terminalTheme.amber });
             const code = await activeConn.requestPairingCode(targetPhone);
-            const formattedCode = code?.match(/.{1,4}/g)?.join(' - ') || code;
-
-            console.log('\n' + chalk.bgGreen.black.bold(' 🔑 PAIRING CODE TERSEDIA ') + '\n');
-            console.log(chalk.green.bold(`  >>>  ${formattedCode}  <<<  \n`));
-            console.log(chalk.cyan(`1. Buka WhatsApp di HP (+${targetPhone})`));
-            console.log(chalk.cyan(`2. Ketuk Titik 3 > Perangkat Tertaut > Tautkan Perangkat`));
-            console.log(chalk.cyan(`3. Pilih "Tautkan dengan nomor telepon saja"`));
-            console.log(chalk.cyan(`4. Masukkan kode: ${formattedCode}\n`));
+            
+            showPairingCodePanel(targetPhone, code);
         } catch (error) {
             schedulePairingRetry(runDirectPairing.bind(null, targetPhone), attempt, error);
         }
