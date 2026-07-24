@@ -1,0 +1,26 @@
+{
+  "name": "store-bot",
+  "version": "1.0.0",
+  "description": "WhatsApp Store Bot by zansxart",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "author": "zansxart",
+  "license": "GPL-3.0-or-later",
+  "dependencies": {
+    "@zansxart/baileys": "github:zansxart/baileysx",
+    "chalk": "^5.0.1",
+    "chokidar": "^4.0.3",
+    "lowdb": "^5.0.5",
+    "node-cache": "^5.1.2",
+    "node-fetch": "^3.3.2",
+    "pino": "^8.11.0",
+    "qrcode": "^1.5.4",
+    "better-sqlite3": "^11.0.0",
+    "syntax-error": "^1.4.0",
+    "yargs": "^17.7.1",
+    "cfonts": "^3.1.1"
+  }
+}
