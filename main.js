@@ -18,6 +18,7 @@ import { storeDB } from './lib/store-db.js';
 import { loadMessage, makeWASocket, protoType, serialize } from './core/services/runtime/simple.js';
 import { handler } from './core/runtime/handler.js';
 import { getDirname, getFilename, getRequire } from './core/services/runtime/utils.js';
+import { loadPlugins } from './core/services/runtime/plugins.js';
 
 const {
     DisconnectReason,
@@ -60,10 +61,25 @@ serialize();
 const msgRetryCounterCache = new NodeCache();
 
 // Reconnect guards (mencegah badai socket saat pairing / disconnect beruntun)
-let isConnecting = false;          // true selama satu siklus startBot berjalan
 let reconnectScheduled = false;    // true bila reconnect sudah dijadwalkan, hindari tumpukan
 let lastReconnectAt = 0;
+let heartbeatTimer = null;         // simpan agar tidak bocor tiap reconnect
 const RECONNECT_MIN_INTERVAL_MS = 5000;
+
+// Lepas listener + tutup socket lama supaya tidak jadi zombie yang menumpuk
+function teardownConn() {
+    if (heartbeatTimer) {
+        clearInterval(heartbeatTimer);
+        heartbeatTimer = null;
+    }
+    const old = global.conn;
+    if (!old) return;
+    try { old.ev?.removeAllListeners?.('connection.update'); } catch {}
+    try { old.ev?.removeAllListeners?.('creds.update'); } catch {}
+    try { old.ev?.removeAllListeners?.('messages.upsert'); } catch {}
+    try { old.ws?.close?.(); } catch {}
+    try { old.end?.(undefined); } catch {}
+}
 
 function scheduleReconnect(reason = 'unknown') {
     if (reconnectScheduled) return;
@@ -126,41 +142,9 @@ state.keys = {
     }
 };
 
-// Plugins Loader
+// Load plugins with onah engine (populates global.plugins AND global.pluginRuntime)
 const pluginDir = path.join(__dirname, 'plugins');
-if (!fs.existsSync(pluginDir)) fs.mkdirSync(pluginDir, { recursive: true });
-
-async function loadPlugin(file) {
-    const relativePath = path.relative(__dirname, file);
-    try {
-        const fileContent = fs.readFileSync(file, 'utf-8');
-        const err = syntaxError(fileContent, file, { sourceType: 'module', allowAwaitOutsideFunction: true });
-        if (err) {
-            console.error(chalk.red(`Syntax error in ${relativePath}:`), err);
-            return;
-        }
-        
-        const moduleUrl = `${pathToFileURL(file).href}?t=${Date.now()}`;
-        const module = await import(moduleUrl);
-        if (module.default) {
-            global.plugins[relativePath] = module.default;
-        }
-    } catch (e) {
-        console.error(chalk.red(`Error loading plugin ${relativePath}:`), e);
-    }
-}
-
-function watchPlugins() {
-    const watcher = chokidar.watch(pluginDir, { ignored: /(^|[\/\\])\../, persistent: true });
-    watcher
-        .on('add', file => { if (file.endsWith('.js')) loadPlugin(file); })
-        .on('change', file => { if (file.endsWith('.js')) { console.log(chalk.cyan(`Reloading plugin: ${path.basename(file)}`)); loadPlugin(file); } })
-        .on('unlink', file => { 
-            const relativePath = path.relative(__dirname, file);
-            delete global.plugins[relativePath];
-        });
-}
-watchPlugins();
+await loadPlugins(pluginDir);
 
 async function startBot() {
     let useQR = process.argv.includes('--qr') || global.config?.useQR === true;
