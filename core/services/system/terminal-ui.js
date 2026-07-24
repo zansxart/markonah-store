@@ -244,6 +244,29 @@ export function showHeroBanner(options = {}) {
     );
 }
 
+export async function playBrailleCartAnimation(label = 'Loading Store Engine', durationMs = 1200) {
+    if (!process.stdout.isTTY) return;
+
+    const brailleSpinners = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
+    const brailleDots = ['⡀', '⣀', '⣄', '⣤', '⣦', '⣶', '⣷', '⣿', '⣿', '⣶', '⣦', '⣤', '⣄', '⣀', '⡀'];
+    const steps = 24;
+    const interval = Math.max(30, Math.floor(durationMs / steps));
+
+    for (let i = 0; i < steps; i++) {
+        const spinner = chalk.hex(terminalTheme.amber)(brailleSpinners[i % brailleSpinners.length]);
+        const dotLeft = chalk.hex(terminalTheme.mint)(brailleDots[i % brailleDots.length]);
+        const dotRight = chalk.hex(terminalTheme.sky)(brailleDots[(i + 4) % brailleDots.length]);
+        
+        const barLength = 20;
+        const fill = Math.round((i / steps) * barLength);
+        const bar = chalk.hex(terminalTheme.mint)('⡿'.repeat(fill)) + chalk.hex(terminalTheme.line)('⠙'.repeat(barLength - fill));
+
+        process.stdout.write(`\r  ${spinner} ${dotLeft} ${chalk.hex(terminalTheme.textSoft).bold(label)} [${bar}] ${dotRight} `);
+        await wait(interval);
+    }
+    process.stdout.write('\r' + ' '.repeat(75) + '\r');
+}
+
 export function showStoreCartBanner() {
     cfonts.say('STORE', {
         font: 'block',
@@ -254,15 +277,17 @@ export function showStoreCartBanner() {
         space: false
     });
 
+    const brailleFrame = chalk.hex(terminalTheme.dim)('⠂⠄⠠⠐⠠⠐⠠⠐⠠⠐⠠⠐⠠⠐⠠⠐⠠⠐⠠⠐⠠⠐⠠⠐⠠⠐⠠⠐⠠⠐⠠⠐⠠⠐⠠⠐⠠⠐⠠⠐⠠⠐⠠⠐⠠⠐⠠⠐⠠⠐');
+    
     const cartLogo = [
-        chalk.hex(terminalTheme.dim)('             ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·'),
-        chalk.hex(terminalTheme.amber).bold('                 🛒   M A R K O N A H   S T O R E   B O T   🛒'),
-        chalk.hex(terminalTheme.mint) ('             .-------------------------------------------------.'),
-        chalk.hex(terminalTheme.mint) ('            /  [≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡]  \\'),
-        chalk.hex(terminalTheme.sky)  ('           |   ⚡ Automatic Premium Account Store System ⚡    |'),
-        chalk.hex(terminalTheme.sky)  ('            \\  `---------------------------------------------\'  /'),
-        chalk.hex(terminalTheme.rose) ('             `---------(o)-------------------------(o)------\''),
-        chalk.hex(terminalTheme.dim)('             ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·'),
+        brailleFrame,
+        chalk.hex(terminalTheme.amber).bold('        🛒   M A R K O N A H   S T O R E   B O T   🛒'),
+        chalk.hex(terminalTheme.mint) ('     ⣴⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣶⣦'),
+        chalk.hex(terminalTheme.mint) ('    ⢸⣿ [⡿⠿⠿⠿⠿⠿⠿⠿⠿⠿⠿⠿⠿⠿⠿⠿⠿⠿⠿⠿⠿⠿⠿⠿⠿⠿⠿⠿⠿⠿⢿] ⣿'),
+        chalk.hex(terminalTheme.sky)  ('    ⢸⣿    ⚡ Automatic Premium Account Store System ⚡    ⣿'),
+        chalk.hex(terminalTheme.sky)  ('     ⠙⢿⣦⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣤⣴⡿⠋'),
+        chalk.hex(terminalTheme.rose) ('         (⠟)                                                (⠟)'),
+        brailleFrame,
     ].join('\n');
 
     console.log(cartLogo + '\n');
