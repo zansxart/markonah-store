@@ -168,6 +168,50 @@ async function startBot() {
     const { state, saveCreds } = await useMultiFileAuthState('sessions');
     const { version, isLatest } = await fetchLatestBaileysVersion();
 
+    // Signal keys in-memory cache wrapper (mencegah I/O lag yang bikin pairing timeout/gagal taut)
+    const signalKeyCache = new Map();
+    const originalKeys = state.keys;
+    state.keys = {
+        get: async (type, ids) => {
+            const result = {};
+            const missingIds = [];
+            for (const id of ids) {
+                const cacheKey = `${type}-${id}`;
+                if (signalKeyCache.has(cacheKey)) {
+                    result[id] = signalKeyCache.get(cacheKey);
+                } else {
+                    missingIds.push(id);
+                }
+            }
+            if (missingIds.length > 0) {
+                const fetched = await originalKeys.get(type, missingIds);
+                for (const id of missingIds) {
+                    const value = fetched[id];
+                    const cacheKey = `${type}-${id}`;
+                    if (value) {
+                        signalKeyCache.set(cacheKey, value);
+                    }
+                    result[id] = value;
+                }
+            }
+            return result;
+        },
+        set: async (data) => {
+            for (const type in data) {
+                for (const id in data[type]) {
+                    const value = data[type][id];
+                    const cacheKey = `${type}-${id}`;
+                    if (value) {
+                        signalKeyCache.set(cacheKey, value);
+                    } else {
+                        signalKeyCache.delete(cacheKey);
+                    }
+                }
+            }
+            await originalKeys.set(data);
+        }
+    };
+
     const isInteractive = process.stdout.isTTY && process.stdin.isTTY;
     let useQR = process.argv.includes('--qr') || global.config?.useQR || false;
     let phoneNumber = (global.info?.pairingNumber || global.info?.numberBot || '').replace(/[^0-9]/g, '');
@@ -202,8 +246,14 @@ async function startBot() {
         printQRInTerminal: useQR,
         auth: state,
         browser: Browsers.ubuntu('Chrome'),
+        patchMessageBeforeSending: (msg) => msg,
         msgRetryCounterCache,
-        generateHighQualityLinkPreview: true
+        connectTimeoutMs: 60000,
+        defaultQueryTimeoutMs: 60000,
+        keepAliveIntervalMs: 25000,
+        syncFullHistory: false,
+        markOnlineOnConnect: false,
+        generateHighQualityLinkPreview: false
     });
     global.conn = conn;
 
