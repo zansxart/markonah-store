@@ -15,6 +15,7 @@ import { getFilename, getDirname, getRequire } from '../services/runtime/utils.j
 import DATA from '../services/database/DB_LOCAL.js'
 import { failed } from '../services/system/failed.js'
 import { protect } from '../services/system/protector.js'
+import * as Func from '../services/system/function.js'
 // [PERF] Lazy cached import — print.js pakai global.__filename di top-level,
 // jadi gak bisa di-import sebelum main.js set global.__filename.
 // Import sekali saat pertama kali dipanggil, bukan setiap pesan.

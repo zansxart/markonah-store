@@ -93,10 +93,4 @@ function start() {
     });
 }
 
-CFonts.say('STORE BOT', {
-    font: 'chrome',
-    align: 'center',
-    colors: ['system']
-});
-
 start();

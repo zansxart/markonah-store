@@ -6,6 +6,9 @@
 import { watchFile, unwatchFile } from 'fs';
 import { fileURLToPath } from 'url';
 import chalk from 'chalk';
+import * as functions from './core/services/system/function.js';
+
+global.Func = functions;
 
 // ═══════════════════════════════════════
 // │  OWNER & MODERATOR
