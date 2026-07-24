@@ -168,77 +168,97 @@ async function startBot() {
     const { state, saveCreds } = await useMultiFileAuthState('sessions');
     const { version, isLatest } = await fetchLatestBaileysVersion();
 
-    const useQR = global.config?.useQR === true;
+    const isInteractive = process.stdout.isTTY && process.stdin.isTTY;
+    let useQR = process.argv.includes('--qr') || global.config?.useQR || false;
+    let phoneNumber = (global.info?.pairingNumber || global.info?.numberBot || '').replace(/[^0-9]/g, '');
+
+    if (!state.creds.registered) {
+        if (isInteractive && !process.argv.includes('--qr') && !global.config?.useQR) {
+            console.clear();
+            console.log(chalk.cyan.bold('┏━━━〔 WHATSAPP LOGIN SETUP 〕━⬣'));
+            console.log(chalk.cyan('┃ 1. Pairing Code (Login via kode angka)'));
+            console.log(chalk.cyan('┃ 2. QR Code Scan (Login via scan QR)'));
+            console.log(chalk.cyan('┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━⬣\n'));
+
+            let choice = (await question(chalk.cyan(`Masukkan pilihan (1/2) [default: 1]: `))).trim();
+            if (choice === '2') {
+                useQR = true;
+            } else {
+                useQR = false;
+                let defaultNum = phoneNumber;
+                let inputNum = await question(chalk.cyan(`Masukkan nomor WA bot (contoh: 628xxx) [default: ${defaultNum || 'none'}]: `));
+                inputNum = inputNum.trim().replace(/[^0-9]/g, '');
+                if (inputNum) {
+                    phoneNumber = inputNum;
+                }
+            }
+        }
+    }
 
     const conn = makeWASocket({
         version,
+        pairingCode: !useQR,
         logger: pino({ level: 'silent' }),
         printQRInTerminal: useQR,
         auth: state,
-        browser: useQR ? Browsers.ubuntu('Chrome') : ['STORE-BOT', 'Chrome', '4.0.0'],
+        browser: Browsers.ubuntu('Chrome'),
         msgRetryCounterCache,
         generateHighQualityLinkPreview: true
     });
-    
+    global.conn = conn;
+
     conn.getName = (jid) => jid;
 
     conn.reply = async (jid, text, quoted, options) => {
         return conn.sendMessage(jid, { text, ...options }, { quoted });
     };
 
-    // Pairing Code Flow: Otomatis dari config.js dengan retry jika WebSocket belum siap
-    if (!useQR && !conn.authState.creds.registered) {
-        const phoneNumber = (global.info?.pairingNumber || global.info?.numberBot || '').replace(/[^0-9]/g, '');
-        if (!phoneNumber) {
-            console.error(chalk.red.bold('\n[PAIRING ERROR] Nomor bot belum diisi di config.js! (global.info.pairingNumber)\n'));
-            process.exit(1);
+    // Helper wait socket ready (sama dengan onah)
+    async function waitForPairingSocketOpen(timeoutMs = 30000) {
+        const startedAt = Date.now();
+        while (Date.now() - startedAt < timeoutMs) {
+            if (conn.authState?.creds?.registered) return conn;
+            const ws = conn.ws;
+            if (ws && (ws.isOpen || ws.readyState === 1)) return conn;
+            await new Promise(r => setTimeout(r, 500));
         }
+        return conn;
+    }
 
-        setTimeout(async () => {
+    // Trigger pairing code jika belum terdaftar & tidak memakai QR
+    if (!conn.authState.creds.registered && !useQR) {
+        (async () => {
+            if (!phoneNumber) {
+                console.error(chalk.red.bold('\n[PAIRING ERROR] Nomor bot belum diisi di config.js atau terminal!\n'));
+                return;
+            }
+
+            console.log(chalk.cyan(`\n[PAIRING] Meminta pairing code untuk nomor +${phoneNumber}...`));
+            
+            await waitForPairingSocketOpen();
+            await new Promise(r => setTimeout(r, 2000));
+
             let attempts = 0;
-            const maxAttempts = 12;
             let success = false;
-
-            while (attempts < maxAttempts && !conn.authState.creds.registered && !success) {
+            while (attempts < 10 && !success && !conn.authState.creds.registered) {
                 attempts++;
                 try {
-                    // Tunggu hingga WebSocket benar-benar OPEN
-                    let ready = false;
-                    for (let i = 0; i < 30; i++) {
-                        const ws = conn.ws;
-                        if (ws && (ws.isOpen || ws.readyState === 1)) {
-                            ready = true;
-                            break;
-                        }
-                        await new Promise(r => setTimeout(r, 500));
-                    }
-
-                    if (!ready) {
-                        console.log(chalk.yellow(`[PAIRING] Menunggu WebSocket siap... (Percobaan ${attempts}/${maxAttempts})`));
-                        await new Promise(r => setTimeout(r, 2000));
-                        continue;
-                    }
-
-                    // Jeda sejenak agar handshake awal selesai
-                    await new Promise(r => setTimeout(r, 1500));
-
                     const code = await conn.requestPairingCode(phoneNumber);
                     const formattedCode = code?.match(/.{1,4}/g)?.join(' - ') || code;
 
                     console.log('\n' + chalk.bgGreen.black.bold(' 🔑 PAIRING CODE TERSEDIA ') + '\n');
                     console.log(chalk.green.bold(`  >>>  ${formattedCode}  <<<  \n`));
-                    console.log(chalk.cyan(`1. Buka WhatsApp di HP (${phoneNumber})`));
+                    console.log(chalk.cyan(`1. Buka WhatsApp di HP (+${phoneNumber})`));
                     console.log(chalk.cyan(`2. Ketuk Titik 3 > Perangkat Tertaut > Tautkan Perangkat`));
                     console.log(chalk.cyan(`3. Pilih "Tautkan dengan nomor telepon saja"`));
-                    console.log(chalk.cyan(`4. Masukkan kode di atas: ${formattedCode}\n`));
-                    
+                    console.log(chalk.cyan(`4. Masukkan kode: ${formattedCode}\n`));
                     success = true;
                 } catch (err) {
-                    console.error(chalk.red(`[PAIRING ERROR] Gagal request pairing code (Percobaan ${attempts}/${maxAttempts}):`), err?.message || err);
+                    console.error(chalk.yellow(`[PAIRING] Retry (${attempts}/10)...`), err?.message || err);
                     await new Promise(r => setTimeout(r, 3000));
                 }
             }
-        }, 1000);
+        })();
     }
 
     conn.ev.on('connection.update', (update) => {
