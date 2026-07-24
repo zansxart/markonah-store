@@ -1059,7 +1059,7 @@ async function processOneMessage(rawMsg, chatUpdate) {
       // Tanpa ini, kalau metadata belum ke-cache (misal habis restart / LID),
       // pengecekan langsung skip dan fallback ke scan semua grup yang juga unreliable.
       let _prefetchedOfficialMetadata = null
-      const _needsGcOnlyCheck = (global.setting.groupOnly || global.opts['gconly']) && !m.isGroup && !isROwner && !m.key.fromMe
+      const _needsGcOnlyCheck = (global.setting?.groupOnly || global.opts?.['gconly']) && !m.isGroup && !isROwner && !m.key.fromMe
       if (_needsGcOnlyCheck && global.officialGroupJid) {
         const officialJid = global.officialGroupJid
         const existing = conn.chats?.[officialJid]?.metadata

@@ -25,6 +25,16 @@ global.mods = [
 // │  BOT CONFIGURATION
 // ═══════════════════════════════════════
 
+global.opts = global.opts || {};
+
+global.setting = {
+    cTmp: true,
+    typing: false,
+    online: false,
+    resetLimit: false,
+    groupOnly: false,
+};
+
 global.config = {
     sessions: 'sessions',
     useQR: false,
