@@ -3,17 +3,41 @@
  * Instagram: https://instagram.com/zansxart
  */
 import { storeDB } from '../../lib/store-db.js';
-import { rp, generateInvoiceId } from '../../lib/format.js';
+import { rp, generateInvoiceId, usage } from '../../lib/format.js';
 import { createQRIS } from '../../lib/qris.js';
+import { settlePaid } from '../../lib/settle.js';
+import { notifyNewOrder } from '../../lib/store-notify.js';
 import QRCode from 'qrcode';
 
-let handler = async (m, { conn, args, usedPrefix }) => {
-    if (!args[0]) return m.reply(`Contoh: ${usedPrefix}buy <id> [qty]`);
-    
+/**
+ * Cari nominal unik (harga + kode receh 1-99) yang belum dipakai transaksi
+ * lain. Termasuk yang baru cancel: notif pembayaran QRIS bisa telat berjam-
+ * jam (lintas e-wallet lewat switching), jadi selama window telat masih
+ * aktif nominalnya tidak boleh kepakai ulang — kalau tidak, pembayaran telat
+ * bakal nyocok ke invoice yang salah.
+ */
+function generateUniqueAmount(baseTotal) {
+    for (let receh = 1; receh <= 99; receh++) {
+        const candidate = baseTotal + receh;
+        if (!storeDB.isAmountInUse(candidate)) return candidate;
+    }
+    // Fallback (99 pending nominal sama secara bersamaan — praktis mustahil).
+    return baseTotal + Math.floor(Math.random() * 99) + 1;
+}
+
+let handler = async (m, { conn, args, usedPrefix, command }) => {
+    if (!args[0]) return m.reply(usage({
+        prefix: usedPrefix, command,
+        desc: 'Beli produk dari katalog',
+        format: '<id> [qty]',
+        examples: ['spotify1', 'spotify1 2'],
+        note: 'Lihat daftar produk & ID-nya dengan ' + (usedPrefix || '.') + 'katalog',
+    }));
+
     let productId = args[0];
     let qty = args[1] ? parseInt(args[1]) : 1;
-    
-    if (isNaN(qty) || qty < 1) return m.reply(`❌ Qty harus berupa angka minimal 1.`);
+
+    if (isNaN(qty) || qty < 1) return m.reply(`❌ Qty harus berupa angka minimal 1. Contoh: ${(usedPrefix || '.')}${command} ${productId} 2`);
     
     let product = storeDB.getProduct(productId);
     if (!product) return m.reply(`❌ Produk dengan ID ${productId} tidak ditemukan.`);
@@ -21,16 +45,21 @@ let handler = async (m, { conn, args, usedPrefix }) => {
     let stock = storeDB.getStockCount(productId);
     if (stock < qty) return m.reply(`❌ Stok tidak cukup. Sisa stok: ${stock}`);
     
-    let total = product.price * qty;
+    let subtotal = product.price * qty;
     let invoiceId = generateInvoiceId();
     let qrisString = global.payment?.qris || '';
-    
+
     if (!qrisString) return m.reply(`❌ QRIS belum diatur oleh Owner. Ketik ${usedPrefix}setqris untuk mengatur.`);
-    
-    storeDB.createTransaction(invoiceId, m.sender, productId, qty, total);
+
+    // Nominal unik (harga + kode receh) → dipakai untuk QRIS, tagihan, & matcher webhook.
+    let total = generateUniqueAmount(subtotal);
+    let recehNote = total - subtotal;
+
+    // chat_jid: chat asal transaksi, dipakai buat balikin notif ke grup yang sama.
+    storeDB.createTransaction(invoiceId, m.sender, productId, qty, total, 'qris', total, m.chat);
     let qrisPayload = createQRIS(qrisString, total);
     let qrisBuffer = await QRCode.toBuffer(qrisPayload);
-    
+
     let text = `┏━━━〔 💳 PEMBAYARAN 〕━⬣
 ┃
 ┃ 📦 Produk  : ${product.name}
@@ -38,10 +67,13 @@ let handler = async (m, { conn, args, usedPrefix }) => {
 ┃ 💰 Total   : Rp ${rp(total)}
 ┃ 🧾 Invoice : ${invoiceId}
 ┃
+┃ ⚠️ Bayar *TEPAT* Rp ${rp(total)}
+┃    (termasuk kode unik ${recehNote})
+┃    biar terverifikasi otomatis.
+┃
 ┃ ⏰ Batas Bayar: 5 Menit
 ┃
-┃ 📱 Scan QRIS di atas untuk
-┃    membayar tepat Rp ${rp(total)}
+┃ 📱 Scan QRIS di atas untuk membayar
 ┃
 ┗━━━━━━━━━━━━━━━━⬣`;
 
@@ -63,14 +95,13 @@ let handler = async (m, { conn, args, usedPrefix }) => {
         }, 5 * 60 * 1000)
     };
     
-    let ownerNum = (Array.isArray(global.owner) ? global.owner[0] : global.owner) + '@s.whatsapp.net';
-    if (ownerNum) {
-        let buyerName = m.sender.split('@')[0];
-        conn.sendMessage(ownerNum, { 
-            text: `🔔 *Pesanan Baru*\nInvoice: ${invoiceId}\nPembeli: @${buyerName}\nProduk: ${product.name}\nTotal: Rp ${rp(total)}\nStatus: Pending`, 
-            mentions: [m.sender] 
-        });
-    }
+    notifyNewOrder(conn, {
+        invoiceId,
+        buyerJid: m.sender,
+        productName: product.name,
+        total,
+        chatJid: m.chat,
+    });
 };
 
 handler.before = async (m, { conn, isOwner }) => {
@@ -87,31 +118,19 @@ handler.before = async (m, { conn, isOwner }) => {
     
     let invoiceId = match[1];
     let trx = storeDB.getTransaction(invoiceId);
-    
+
     if (!trx) return m.reply(`❌ Transaksi tidak ditemukan.`);
     if (trx.status !== 'pending' && trx.status !== 'process') return m.reply(`❌ Transaksi sudah selesai atau dibatalkan.`);
-    
-    storeDB.updateTransactionStatus(invoiceId, 'paid');
-    
-    if (global.store?.autoSend) {
-        let stock = storeDB.getStockCount(trx.product_id);
-        if (stock >= trx.qty) {
-            let items = storeDB.takeStock(trx.product_id, trx.qty, trx.buyer_jid, invoiceId);
-            storeDB.completeTransaction(invoiceId, items);
-            
-            let resultText = `✅ *PEMBAYARAN DITERIMA*\nInvoice: ${invoiceId}\n\nBerikut adalah pesanan Anda:\n\n`;
-            items.forEach((item, i) => {
-                resultText += `${i + 1}. ${item}\n`;
-            });
-            resultText += `\nTerima kasih telah berbelanja!`;
-            
-            await conn.sendMessage(trx.buyer_jid, { text: resultText });
-            return m.reply(`✅ Pesanan selesai dan stok dikirim ke pembeli.`);
-        }
+
+    let res = await settlePaid(conn, invoiceId, { source: 'manual' });
+
+    if (!res.ok) {
+        if (res.reason === 'already_settled') return m.reply(`❌ Transaksi sudah selesai atau dibatalkan.`);
+        return m.reply(`❌ Transaksi tidak ditemukan.`);
     }
-    
-    storeDB.updateTransactionStatus(invoiceId, 'process');
-    await conn.sendMessage(trx.buyer_jid, { text: `✅ Pembayaran untuk invoice ${invoiceId} telah diterima.\nPesanan Anda sedang diproses.` });
+    if (res.status === 'done') {
+        return m.reply(`✅ Pesanan selesai dan stok dikirim ke pembeli.`);
+    }
     return m.reply(`✅ Pembayaran dikonfirmasi. Status: Process.\nStok kurang atau autoSend mati. Silakan kirim stok manual dengan:\n*${global.config?.prefix || '.'}done ${invoiceId}*`);
 };
 

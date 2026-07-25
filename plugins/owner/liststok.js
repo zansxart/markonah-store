@@ -40,7 +40,7 @@ let handler = async (m, { conn, args }) => {
     m.reply(teks);
 };
 handler.help = ['liststok'];
-handler.command = ['liststok', 'stok', 'stock', 'ls'];
+handler.command = ['liststok', 'ls', 'sisastok', 'stoksisa'];
 handler.tags = ['owner'];
 handler.rowner = true;
 export default handler;

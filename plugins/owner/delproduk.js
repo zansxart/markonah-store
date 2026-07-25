@@ -3,10 +3,16 @@
  * Instagram: https://instagram.com/zansxart
  */
 import { storeDB } from '../../lib/store-db.js';
+import { usage } from '../../lib/format.js';
 
-let handler = async (m, { conn, args }) => {
-    if (!args[0]) return m.reply('Masukkan ID produk yang akan dihapus!');
-    
+let handler = async (m, { conn, args, usedPrefix, command }) => {
+    if (!args[0]) return m.reply(usage({
+        prefix: usedPrefix, command,
+        desc: 'Hapus produk dari katalog',
+        format: '<id>',
+        examples: 'spotify1',
+    }));
+
     let id = args[0];
     let product = storeDB.getProduct(id);
     if (!product) return m.reply('Produk tidak ditemukan!');

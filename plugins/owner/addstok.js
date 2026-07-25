@@ -3,17 +3,30 @@
  * Instagram: https://instagram.com/zansxart
  */
 import { storeDB } from '../../lib/store-db.js';
+import { usage } from '../../lib/format.js';
 
 let handler = async (m, { conn, text, usedPrefix, command }) => {
     let input = text || (m.quoted ? m.quoted.text : '');
-    if (!input) return m.reply(`Format salah!\nContoh: ${usedPrefix + command} spotify1\nemail:pass\nemail2:pass2`);
-    
+    if (!input) return m.reply(usage({
+        prefix: usedPrefix, command,
+        desc: 'Tambah stok produk. Baris 1 = ID produk, baris berikutnya = data stok (1 per baris)',
+        format: '<id> lalu enter, tiap data stok di baris baru',
+        examples: 'spotify1',
+        note: 'Contoh lengkap:\n┃   ' + (usedPrefix || '.') + command + ' spotify1\n┃   email1:pass1\n┃   email2:pass2',
+    }));
+
     let lines = input.split('\n');
     let productId = lines[0].trim();
     let stockData = lines.slice(1).map(v => v.trim()).filter(v => v);
 
     if (!productId) return m.reply(`ID Produk harus diisi!`);
-    if (stockData.length === 0) return m.reply(`Data stok kosong! Pastikan baris pertama ID, dan baris berikutnya data stok.`);
+    if (stockData.length === 0) return m.reply(usage({
+        prefix: usedPrefix, command,
+        desc: 'Data stok kosong. Baris 1 = ID, baris berikutnya = data stok (1 per baris)',
+        format: '<id> lalu enter, tiap data stok di baris baru',
+        examples: 'spotify1',
+        note: 'Contoh lengkap:\n┃   ' + (usedPrefix || '.') + command + ' spotify1\n┃   email1:pass1\n┃   email2:pass2',
+    }));
 
     let product = storeDB.getProduct(productId);
     if (!product) return m.reply(`Produk dengan ID '${productId}' tidak ditemukan!`);

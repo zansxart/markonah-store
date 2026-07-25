@@ -3,17 +3,23 @@
  * Instagram: https://instagram.com/zansxart
  */
 import { storeDB } from '../../lib/store-db.js';
-import { rp } from '../../lib/format.js';
+import { rp, usage } from '../../lib/format.js';
 
-let handler = async (m, { conn, args, text }) => {
+let handler = async (m, { conn, args, text, usedPrefix, command }) => {
     let inv = args[0];
     let dataAkun = text.replace(inv, '').trim();
     if (m.quoted && m.quoted.text) {
         dataAkun = m.quoted.text;
     }
-    
-    if (!inv || !dataAkun) return m.reply('Masukkan ID Invoice dan Data Akun!\nContoh: .kirim INV-1234 email@gmail.com:pass');
-    
+
+    if (!inv || !dataAkun) return m.reply(usage({
+        prefix: usedPrefix, command,
+        desc: 'Kirim data akun ke pembeli & tandai selesai',
+        format: '<invoice> <data_akun>',
+        examples: 'INV-A3F2K9 email@gmail.com:pass',
+        note: 'Bisa juga reply pesan berisi data akun sambil ketik: ' + (usedPrefix || '.') + command + ' <invoice>',
+    }));
+
     let trx = storeDB.getTransaction(inv);
     if (!trx) return m.reply('Transaksi tidak ditemukan!');
     

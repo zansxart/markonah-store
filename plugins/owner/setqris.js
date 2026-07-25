@@ -2,8 +2,16 @@
  * @credit zansxart
  * Instagram: https://instagram.com/zansxart
  */
-let handler = async (m, { conn, text }) => {
-    if (!text) return m.reply('Masukkan string QRIS!');
+import { usage } from '../../lib/format.js';
+
+let handler = async (m, { conn, text, usedPrefix, command }) => {
+    if (!text) return m.reply(usage({
+        prefix: usedPrefix, command,
+        desc: 'Atur string QRIS statis untuk pembayaran',
+        format: '<string_qris>',
+        examples: '00020101021126...',
+        note: 'Salin string QRIS statis dari GoPay Merchant / DANA Bisnis.',
+    }));
     global.payment = global.payment || {};
     global.payment.qris = text;
     

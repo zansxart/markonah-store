@@ -3,10 +3,16 @@
  * Instagram: https://instagram.com/zansxart
  */
 import { storeDB } from '../../lib/store-db.js';
+import { usage } from '../../lib/format.js';
 
-let handler = async (m, { conn, text }) => {
-    if (!text) return m.reply('Masukkan pesan broadcast!');
-    
+let handler = async (m, { conn, text, usedPrefix, command }) => {
+    if (!text) return m.reply(usage({
+        prefix: usedPrefix, command,
+        desc: 'Kirim pesan ke semua pembeli',
+        format: '<pesan>',
+        examples: 'Promo hari ini diskon 20%!',
+    }));
+
     let trxs = storeDB.getAllTransactions();
     let buyers = [...new Set(trxs.map(t => t.buyer_jid))];
     

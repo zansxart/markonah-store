@@ -3,12 +3,17 @@
  * Instagram: https://instagram.com/zansxart
  */
 import { storeDB } from '../../lib/store-db.js';
-import { rp } from '../../lib/format.js';
+import { rp, usage } from '../../lib/format.js';
 
-let handler = async (m, { conn, args }) => {
+let handler = async (m, { conn, args, usedPrefix, command }) => {
     let inv = args[0];
-    if (!inv) return m.reply('Masukkan ID Invoice!');
-    
+    if (!inv) return m.reply(usage({
+        prefix: usedPrefix, command,
+        desc: 'Tandai transaksi selesai & kirim stok ke pembeli',
+        format: '<invoice>',
+        examples: 'INV-A3F2K9',
+    }));
+
     let trx = storeDB.getTransaction(inv);
     if (!trx) return m.reply('Transaksi tidak ditemukan!');
     

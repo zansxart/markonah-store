@@ -3,7 +3,7 @@
  * Instagram: https://instagram.com/zansxart
  */
 
-import { watchFile, unwatchFile } from 'fs';
+import { watchFile, unwatchFile, existsSync, readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import chalk from 'chalk';
 import * as functions from './core/services/system/function.js';
@@ -42,8 +42,8 @@ global.config = {
 };
 
 global.info = {
-    numberBot: '6285122541819',
-    pairingNumber: '6285122541819',
+    numberBot: '6288980871033',
+    pairingNumber: '6288980871033',
     nameBot: 'MARKONAH-STORE',
     nameOwn: 'Izan',
     numberOwn: global.owner,
@@ -57,8 +57,8 @@ global.info = {
 // ═══════════════════════════════════════
 
 global.media = {
-    logo: 'https://files.catbox.moe/k8fxoj.jpg',
-    thumbnail: 'https://files.catbox.moe/9ibkfl.jpg',
+    logo: './assets/logo.jpg',
+    thumbnail: './assets/thumbnail.jpg',
 };
 
 global.url = {
@@ -72,8 +72,11 @@ global.url = {
 // ═══════════════════════════════════════
 
 global.payment = {
-    qris: '00020101021126570011ID.DANA.WWW011893600915357326135802095732613580303UMI51440014ID.CO.QRIS.WWW0215ID10233079409090303UMI5204899953033605802ID5907zansart6011Kab. Brebes6105522756304BB99',
+    qris: '00020101021126610014COM.GO-JEK.WWW01189360091438534824440210G8534824440303UMI51440014ID.CO.QRIS.WWW0215ID10254585814570303UMI5204597053033605802ID5908zansxart6006BREBES61055227562070703A0163043BAB',
     dana: '085802569316',
+    // ── Webhook auto-confirm GoPay Merchant (baca notif GoBiz via HP standby) ──
+    webhookToken: 'A2AxnnhkVOTg-gxoZ1gFEK_ieUvyJge8',  // token acak rahasia (jangan disebar)
+    webhookPort: 3939,                        // port webhook (buka di firewall VPS)
 };
 
 // ═══════════════════════════════════════
@@ -82,8 +85,11 @@ global.payment = {
 
 global.store = {
     autoSend: true,         // Otomatis kirim stok setelah bayar (jika stok tersedia)
+    autoConfirm: true,      // Aktifkan webhook auto-confirm GoPay (false = manual acc saja)
     paymentTimeout: 300,    // Timeout pembayaran dalam detik (5 menit)
-    notifGroup: '120363235158363450@g.us',         // JID grup untuk notifikasi transaksi (kosong = ke owner)
+    notifGroup: '',         // Cadangan JID grup notif. Biarkan kosong: notif otomatis
+                            // dikirim ke grup tempat transaksi dibuat. Isi hanya kalau
+                            // mau SEMUA notif dipusatkan ke satu grup tertentu.
     welcomeMsg: true,       // Kirim pesan selamat datang ke pembeli baru
 };
 
@@ -93,6 +99,9 @@ global.store = {
 
 global.fetchBuffer = async (url, options) => {
     try {
+        if (typeof url === 'string' && existsSync(url)) {
+            return readFileSync(url);
+        }
         const res = await fetch(url, {
             method: 'GET',
             headers: { 'DNT': 1, 'Upgrade-Insecure-Requests': 1 },

@@ -2,6 +2,7 @@
  * @credit zansxart
  * Instagram: https://instagram.com/zansxart
  */
+import fs from 'fs';
 import { storeDB } from '../../lib/store-db.js';
 
 let handler = async (m, { conn, usedPrefix }) => {
@@ -58,10 +59,13 @@ ${readMore}
 _© markonah-store by zansxart_
 _Instagram: https://instagram.com/zansxart_`;
 
-    let imageUrl = global.media?.thumbnail || 'https://files.catbox.moe/9ibkfl.jpg';
+    let imageUrl = global.media?.thumbnail || './assets/thumbnail.jpg';
+    let imageSource = (typeof imageUrl === 'string' && fs.existsSync(imageUrl))
+        ? fs.readFileSync(imageUrl)
+        : { url: imageUrl };
     
     await conn.sendMessage(m.chat, {
-        image: { url: imageUrl },
+        image: imageSource,
         caption: menuText,
         mentions: [m.sender]
     }, { quoted: m });

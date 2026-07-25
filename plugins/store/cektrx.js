@@ -3,11 +3,16 @@
  * Instagram: https://instagram.com/zansxart
  */
 import { storeDB } from '../../lib/store-db.js';
-import { rp, formatDate, formatTime, statusEmoji } from '../../lib/format.js';
+import { rp, formatDate, formatTime, statusEmoji, usage } from '../../lib/format.js';
 
-let handler = async (m, { conn, args, usedPrefix }) => {
-    if (!args[0]) return m.reply(`Contoh: ${usedPrefix}cektrx <invoice_id>`);
-    
+let handler = async (m, { conn, args, usedPrefix, command }) => {
+    if (!args[0]) return m.reply(usage({
+        prefix: usedPrefix, command,
+        desc: 'Cek status & detail sebuah transaksi',
+        format: '<invoice>',
+        examples: 'INV-A3F2K9',
+    }));
+
     let invoiceId = args[0].toUpperCase();
     let trx = storeDB.getTransaction(invoiceId);
     

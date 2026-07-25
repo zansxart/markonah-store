@@ -159,6 +159,11 @@ function createCommandContext(text = '', match) {
   const noPrefix = result ? text.slice(result.length).trim() : text.trim()
   const [rawCommand = '', ...args] = noPrefix ? noPrefix.split(/\s+/) : ['']
   const command = rawCommand.toLowerCase()
+  // Pertahankan newline & spasi asli untuk `text` (argumen setelah command).
+  // Jangan pakai args.join(' ') karena itu membuang enter → merusak input
+  // multi-baris seperti addstok / broadcast. Buang pemisah pertama saja
+  // (spasi horizontal + maksimal satu newline) antara command dan argumen.
+  const argText = noPrefix.slice(rawCommand.length).replace(/^[^\S\n]*\n?/, '')
 
   return {
     match,
@@ -167,7 +172,7 @@ function createCommandContext(text = '', match) {
     noPrefix,
     command,
     args,
-    text: args.join(' '),
+    text: argText,
     isAccessible: Boolean(match && match[0] !== null),
   }
 }
@@ -298,7 +303,7 @@ function selectBestUserKey(dbUser, candidateKeys = [], fallbackKey = '') {
 
 function isPotentialCommandText(conn, text = '', botSettings = {}) {
   if (!text) return false
-  if (botSettings?.noprefix) return true
+  if (botSettings?.noprefix || global.__noPrefixMode === true) return true
 
   if (matchesPrefixSource(conn?.prefix || global.prefix, text)) return true
 
@@ -723,6 +728,29 @@ async function processOneMessage(rawMsg, chatUpdate) {
     const rawMentionedJid = Array.isArray(m.rawMentionedJid)
       ? [...m.rawMentionedJid]
       : (Array.isArray(m.mentionedJid) ? [...m.mentionedJid] : [])
+
+    // [LID] Pre-resolve JID @lid → nomor asli via resolver resmi baileys SEBELUM
+    // normalizeSender() (yang sinkron) dipanggil. Tanpa ini, pengirim DM yang datang
+    // sebagai @lid tidak pernah ter-resolve → tampil "akun tidak dikenal".
+    // Additive + try/catch: kalau resolver gagal/null, fallback ke perilaku lama.
+    const lidMapping = conn.signalRepository?.lidMapping
+    if (lidMapping?.getPNForLID) {
+      const toResolve = [m.sender, m.key?.participant, ...rawMentionedJid]
+        .filter((j) => typeof j === 'string' && j.endsWith('@lid'))
+        .filter((j, i, arr) => arr.indexOf(j) === i)
+        .filter((j) => !dbJidAliases[j] && !dbJidAliases[String(j).replace(/@lid$/, '')])
+      for (const lidJid of toResolve) {
+        try {
+          const pn = await lidMapping.getPNForLID(lidJid)
+          if (typeof pn === 'string' && pn) {
+            const pnJid = conn.decodeJid ? conn.decodeJid(pn) : pn
+            const digits = String(pnJid || '').replace(/\D/g, '')
+            if (digits) registerJidAlias(`${digits}@s.whatsapp.net`, [lidJid, pn, pnJid])
+          }
+        } catch { /* fallback: biarkan @lid, pesan tetap terkirim */ }
+      }
+    }
+
     const senderId = normalizeSender(m.sender) || m.sender
     m.realSender = senderId
     registerJidAlias(senderId, [
@@ -750,6 +778,23 @@ async function processOneMessage(rawMsg, chatUpdate) {
         )
       }
     })
+
+    // [LID] Perbaiki tujuan balasan untuk DM: kalau chat masih @lid, arahkan ke
+    // nomor asli (m.realSender). Tanpa ini, m.reply() nyasar ke "akun tidak dikenal".
+    // Grup (@g.us) & DM biasa (@s.whatsapp.net) tidak disentuh. Fallback aman ke rawChat.
+    {
+      const rawChat = m.chat
+      const isGroupChat = typeof rawChat === 'string' && rawChat.endsWith('@g.us')
+      if (!isGroupChat && typeof rawChat === 'string' && rawChat.endsWith('@lid')) {
+        Object.defineProperty(m, 'chat', {
+          get() {
+            const resolved = m.realSender
+            return (typeof resolved === 'string' && resolved.endsWith('@s.whatsapp.net')) ? resolved : rawChat
+          },
+          configurable: true,
+        })
+      }
+    }
 
     try {
       DATA(m, this)
@@ -923,7 +968,7 @@ async function processOneMessage(rawMsg, chatUpdate) {
     const defaultMatch = resolvePrefixMatch(defaultPrefixSource, m.text)
     const defaultContext = createCommandContext(m.text, defaultMatch)
     let usedPrefix = defaultContext.usedPrefix
-    const allowNoPrefix = Boolean(botSettings.noprefix)
+    const allowNoPrefix = Boolean(botSettings.noprefix) || global.__noPrefixMode === true
     const hasDefaultCommandAccess = defaultContext.isAccessible || allowNoPrefix
 
     for (const entry of pluginRuntime.orderedEntries) {
