@@ -1207,7 +1207,7 @@ async function processOneMessage(rawMsg, chatUpdate) {
               m.chat,
               `⚠️ *PERINGATAN BOT SEWA*\n\n` +
               `Halo! Grup ini belum terdaftar dalam masa sewa aktif.\n` +
-              `Agar Onah bisa merespons perintah di grup ini, silakan hubungi *.owner* untuk melakukan penyewaan.\n\n` +
+              `Agar Bot bisa merespons perintah di grup ini, silakan hubungi *.owner* untuk melakukan penyewaan.\n\n` +
               `Ketik *.sewa* untuk info harga & list sewa.`,
               m
             )
