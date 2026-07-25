@@ -202,7 +202,7 @@ export async function animateProgress(label, options = {}) {
 
 export function showHeroBanner(options = {}) {
     const {
-        title = 'ONAH',
+        title = 'STOREKU',
         font = 'simpleBlock',
         colors = [terminalTheme.amber, terminalTheme.mint, terminalTheme.sky],
         subtitle,

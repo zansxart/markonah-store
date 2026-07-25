@@ -3,7 +3,7 @@
  * Instagram: https://instagram.com/zansxart
  */
 import { storeDB } from '../../lib/store-db.js';
-import { rp, generateInvoiceId, usage } from '../../lib/format.js';
+import { rp, generateInvoiceId, usage, copyable } from '../../lib/format.js';
 import { createQRIS } from '../../lib/qris.js';
 import { settlePaid } from '../../lib/settle.js';
 import { notifyNewOrder } from '../../lib/store-notify.js';
@@ -65,7 +65,7 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
 ┃ 📦 Produk  : ${product.name}
 ┃ 🔢 Qty     : ${qty}
 ┃ 💰 Total   : Rp ${rp(total)}
-┃ 🧾 Invoice : ${invoiceId}
+┃ 🧾 Invoice : ${copyable(invoiceId)}
 ┃
 ┃ ⚠️ Bayar *TEPAT* Rp ${rp(total)}
 ┃    (termasuk kode unik ${recehNote})
@@ -131,7 +131,9 @@ handler.before = async (m, { conn, isOwner }) => {
     if (res.status === 'done') {
         return m.reply(`✅ Pesanan selesai dan stok dikirim ke pembeli.`);
     }
-    return m.reply(`✅ Pembayaran dikonfirmasi. Status: Process.\nStok kurang atau autoSend mati. Silakan kirim stok manual dengan:\n*${global.config?.prefix || '.'}done ${invoiceId}*`);
+    const prefix = global.config?.prefix || '.';
+    await m.reply(`✅ Pembayaran dikonfirmasi. Status: Process.\nStok kurang atau autoSend mati. Silakan kirim stok manual dengan command di bawah (long-press → Copy):`);
+    return conn.sendMessage(m.chat, { text: copyable(`${prefix}done ${invoiceId}`) }, { quoted: m });
 };
 
 handler.help = ['buy <id>', 'buy <id> <qty>'];

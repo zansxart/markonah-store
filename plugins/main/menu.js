@@ -15,7 +15,7 @@ let handler = async (m, { conn, usedPrefix }) => {
         trx: storeDB.getAllTransactions().length
     };
     
-    let botName = global.info?.nameBot || global.info?.botName || 'MARKONAH STORE';
+    let botName = global.info?.nameBot || global.info?.botName || 'STOREKU';
     let date = new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
     let time = new Date().toLocaleTimeString('id-ID');
     
@@ -56,7 +56,7 @@ ${readMore}
 │ › \`${usedPrefix}rekap\` ── Rekap Omset
 ╰───────────────────
 
-_© markonah-store by zansxart_
+_© storeku by zansxart_
 _Instagram: https://instagram.com/zansxart_`;
 
     let imageUrl = global.media?.thumbnail || './assets/thumbnail.jpg';

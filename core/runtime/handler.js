@@ -1087,7 +1087,7 @@ async function processOneMessage(rawMsg, chatUpdate) {
         const lastTime = conn.cooldowns[senderId] || 0
         if (now - lastTime < 3000) {
           const timeLeft = Math.ceil((3000 - (now - lastTime)) / 1000)
-          m.reply(`Eits, sabar dong bree! 😤 Jangan spam command ntar Onah pusing. Tunggu *${timeLeft} detik* lagi ya! 😝`)
+          m.reply(`Eits, sabar dong bree! 😤 Jangan spam command ntar bot pusing. Tunggu *${timeLeft} detik* lagi ya! 😝`)
           continue
         }
         conn.cooldowns[senderId] = now
@@ -1170,8 +1170,6 @@ async function processOneMessage(rawMsg, chatUpdate) {
         adminOnly: () => m.isGroup && dbChat[m.chat]?.adminonly && !isAdmin && !isOwner,
         admin: () => plugin.admin && !isAdmin,
         botAdmin: () => plugin.botAdmin && !isBotAdmin,
-        game: () => m.isGroup && !dbChat[m.chat]?.game && plugin.tags?.includes('game'),
-        rpg: () => m.isGroup && !dbChat[m.chat]?.rpg && plugin.tags?.includes('rpg'),
         limit: () => !isPrems && plugin.limit && (senderUserRecord?.limit ?? 0) < plugin.limit * 1,
         level: () => (plugin.level ?? 0) > (senderUserRecord?.level ?? 0),
         sewa: () => {
@@ -1187,7 +1185,7 @@ async function processOneMessage(rawMsg, chatUpdate) {
           if (isRented) return false
           
           // Whitelist command yang tetap bisa diakses di grup belum sewa
-          const whitelistCommands = ['sewa', 'sewabot', 'owner', 'creator', 'payment', 'ping', 'rules', 'help', 'menu', 'daftar', 'register', 'verify', 'unreg', 'join', 'addsewa', 'buysewa', 'ceksewa', 'tutoronah', 'ceksn']
+          const whitelistCommands = ['sewa', 'sewabot', 'owner', 'creator', 'payment', 'ping', 'rules', 'help', 'menu', 'daftar', 'register', 'verify', 'unreg', 'join', 'addsewa', 'buysewa', 'ceksewa', 'ceksn']
           if (whitelistCommands.includes((command || '').toLowerCase())) return false
 
           return true
