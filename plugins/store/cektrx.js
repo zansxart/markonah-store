@@ -3,7 +3,7 @@
  * Instagram: https://instagram.com/zansxart
  */
 import { storeDB } from '../../lib/store-db.js';
-import { rp, formatDate, formatTime, statusEmoji, usage } from '../../lib/format.js';
+import { rp, formatDate, formatTime, statusEmoji, usage, copyable } from '../../lib/format.js';
 
 let handler = async (m, { conn, args, usedPrefix, command }) => {
     if (!args[0]) return m.reply(usage({
@@ -27,7 +27,7 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
     let timeStr = typeof formatTime === 'function' ? formatTime(dateObj) : dateObj.toLocaleTimeString();
     
     let text = `┏━━━〔 🧾 DETAIL TRANSAKSI 〕━⬣
-┃ ✦ Invoice: ${trx.invoice_id}
+┃ ✦ Invoice: ${copyable(trx.invoice_id)}
 ┃ ✦ Pembeli: @${trx.buyer_jid.split('@')[0]}
 ┃ ✦ Produk: ${productName}
 ┃ ✦ Qty: ${trx.qty}

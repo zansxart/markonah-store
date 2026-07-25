@@ -3,7 +3,7 @@
  * Instagram: https://instagram.com/zansxart
  */
 import { storeDB } from '../../lib/store-db.js';
-import { rp, usage } from '../../lib/format.js';
+import { rp, usage, copyable } from '../../lib/format.js';
 
 let handler = async (m, { conn, args, text, usedPrefix, command }) => {
     let inv = args[0];
@@ -22,18 +22,18 @@ let handler = async (m, { conn, args, text, usedPrefix, command }) => {
 
     let trx = storeDB.getTransaction(inv);
     if (!trx) return m.reply('Transaksi tidak ditemukan!');
-    
+
     storeDB.completeTransaction(inv, dataAkun);
     let product = storeDB.getProduct(trx.product_id);
-    
-    m.reply(`┏━━━〔 ✅ DATA DIKIRIM 〕━⬣\n┃ ✦ Invoice : ${inv}\n┃ ✦ Status  : Selesai\n┗━━━━━━━━━━━━━━━━⬣`);
-    
+
+    m.reply(`┏━━━〔 ✅ DATA DIKIRIM 〕━⬣\n┃ ✦ Invoice : ${copyable(inv)}\n┃ ✦ Status  : Selesai\n┗━━━━━━━━━━━━━━━━⬣`);
+
     let productName = product ? product.name : (trx.product_name || trx.product_id);
     let totalPrice = trx.total_price || 0;
-    
+
     let dataStr = dataAkun.split('\n').join('\n┃ ');
-    
-    let teksBuyer = `┏━━━〔 📦 PESANAN SELESAI 〕━⬣\n┃\n┃ 🧾 Invoice : ${inv}\n┃ 📦 Produk  : ${productName}\n┃ 💰 Total   : Rp ${rp(totalPrice)}\n┃\n┃ 📋 Data Akun:\n┃ ${dataStr}\n┃\n┃ ⚠️ Segera ganti password!\n┗━━━━━━━━━━━━━━━━⬣`;
+
+    let teksBuyer = `┏━━━〔 📦 PESANAN SELESAI 〕━⬣\n┃\n┃ 🧾 Invoice : ${copyable(inv)}\n┃ 📦 Produk  : ${productName}\n┃ 💰 Total   : Rp ${rp(totalPrice)}\n┃\n┃ 📋 Data Akun:\n┃ ${dataStr}\n┃\n┃ ⚠️ Segera ganti password!\n┗━━━━━━━━━━━━━━━━⬣`;
     conn.sendMessage(trx.buyer_jid, { text: teksBuyer });
 };
 handler.help = ['kirim'];

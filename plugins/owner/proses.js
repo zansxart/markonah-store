@@ -3,7 +3,7 @@
  * Instagram: https://instagram.com/zansxart
  */
 import { storeDB } from '../../lib/store-db.js';
-import { usage } from '../../lib/format.js';
+import { usage, copyable } from '../../lib/format.js';
 
 let handler = async (m, { conn, args, usedPrefix, command }) => {
     let inv = args[0];
@@ -16,12 +16,12 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
 
     let trx = storeDB.getTransaction(inv);
     if (!trx) return m.reply('Transaksi tidak ditemukan!');
-    
+
     storeDB.updateTransactionStatus(inv, 'process');
-    
-    m.reply(`┏━━━〔 ✅ STATUS DIPERBARUI 〕━⬣\n┃ ✦ Invoice : ${inv}\n┃ ✦ Status  : Diproses\n┗━━━━━━━━━━━━━━━━⬣`);
-    
-    let teksBuyer = `┏━━━〔 ⏳ PESANAN DIPROSES 〕━⬣\n┃\n┃ 🧾 Invoice : ${inv}\n┃ Pesanan Anda sedang diproses oleh admin...\n┃ Mohon ditunggu ya kak!\n┗━━━━━━━━━━━━━━━━⬣`;
+
+    m.reply(`┏━━━〔 ✅ STATUS DIPERBARUI 〕━⬣\n┃ ✦ Invoice : ${copyable(inv)}\n┃ ✦ Status  : Diproses\n┗━━━━━━━━━━━━━━━━⬣`);
+
+    let teksBuyer = `┏━━━〔 ⏳ PESANAN DIPROSES 〕━⬣\n┃\n┃ 🧾 Invoice : ${copyable(inv)}\n┃ Pesanan Anda sedang diproses oleh admin...\n┃ Mohon ditunggu ya kak!\n┗━━━━━━━━━━━━━━━━⬣`;
     conn.sendMessage(trx.buyer_jid, { text: teksBuyer });
 };
 handler.help = ['proses'];
