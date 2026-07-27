@@ -3,7 +3,7 @@
  * Instagram: https://instagram.com/zansxart
  */
 import { storeDB } from '../../lib/store-db.js';
-import { rp, formatDate, statusEmoji } from '../../lib/format.js';
+import { rp, formatDate, statusEmoji, copyable } from '../../lib/format.js';
 
 let handler = async (m, { conn }) => {
     let history = storeDB.getUserTransactions(m.sender);
@@ -24,7 +24,7 @@ let handler = async (m, { conn }) => {
         let dateStr = typeof formatDate === 'function' ? formatDate(dateObj) : dateObj.toLocaleDateString();
         
         text += `┃\n`;
-        text += `┃ ✦ Invoice: ${trx.invoice_id}\n`;
+        text += `┃ ✦ Invoice: ${copyable(trx.invoice_id)}\n`;
         text += `┃ ✦ Produk: ${productName}\n`;
         text += `┃ ✦ Total: Rp ${rp(trx.total_price)}\n`;
         text += `┃ ✦ Status: ${emoji} ${trx.status.toUpperCase()}\n`;

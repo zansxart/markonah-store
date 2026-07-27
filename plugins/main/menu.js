@@ -21,8 +21,7 @@ let handler = async (m, { conn, usedPrefix }) => {
     
     const readMore = String.fromCharCode(8206).repeat(4001);
 
-    let menuText = `⚡ *${botName.toUpperCase()}* ⚡
-_Automatic Store Bot System_
+    let menuText = `*${botName.toUpperCase()}*
 
 Halo *@${m.sender.split('@')[0]}* 👋
 
@@ -56,10 +55,9 @@ ${readMore}
 │ › \`${usedPrefix}rekap\` ── Rekap Omset
 ╰───────────────────
 
-_© markonah-store by zansxart_
-_Instagram: https://instagram.com/zansxart_`;
+_@credit zansxart_`;
 
-    let imageUrl = global.media?.thumbnail || './assets/thumbnail.jpg';
+    let imageUrl = global.media?.thumbnail || './storage/assets/thumbnail.jpg';
     let imageSource = (typeof imageUrl === 'string' && fs.existsSync(imageUrl))
         ? fs.readFileSync(imageUrl)
         : { url: imageUrl };

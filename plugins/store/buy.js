@@ -89,7 +89,7 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
             let trx = storeDB.getTransaction(invoiceId);
             if (trx && trx.status === 'pending') {
                 storeDB.updateTransactionStatus(invoiceId, 'cancel');
-                conn.sendMessage(m.chat, { text: `❌ Transaksi ${invoiceId} dibatalkan karena melebihi batas waktu (5 Menit).` });
+                conn.sendMessage(m.chat, { text: `❌ Transaksi ${copyable(invoiceId)} dibatalkan karena melebihi batas waktu (5 Menit).` });
             }
             delete conn.storeTrx[m.sender];
         }, 5 * 60 * 1000)

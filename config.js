@@ -57,8 +57,8 @@ global.info = {
 // ═══════════════════════════════════════
 
 global.media = {
-    logo: './assets/logo.jpg',
-    thumbnail: './assets/thumbnail.jpg',
+    logo: './storage/assets/logo.jpg',
+    thumbnail: './storage/assets/thumbnail.jpg',
 };
 
 global.url = {
