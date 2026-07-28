@@ -9,6 +9,7 @@ import { storeDB } from '../../lib/store-db.js';
 import { rp, generateInvoiceId, usage, copyable } from '../../lib/format.js';
 import { createQRIS } from '../../lib/qris.js';
 import { notifyNewOrder } from '../../lib/store-notify.js';
+import { replyThumb } from '../../lib/ui.js';
 import medanpedia from '../../lib/medanpedia.js';
 import QRCode from 'qrcode';
 
@@ -80,7 +81,7 @@ let handler = async (m, { conn, args, usedPrefix, command, isOwner }) => {
         let txt = `\`SALDO DEPOSIT PROVIDER OWNER\`\n\n`;
         txt += `↳ *Akun Provider:* ${data.username || data.name || 'Owner'}\n`;
         txt += `↳ *Sisa Saldo:* *Rp ${rp(data.balance)}*\n`;
-        return m.reply(txt);
+        return replyThumb(conn, m, txt, 'katalog');
     }
 
     // ── 2. CEK STATUS ORDER SOSMED (.ceksosmed <order_id>) ──
@@ -88,7 +89,7 @@ let handler = async (m, { conn, args, usedPrefix, command, isOwner }) => {
         if (!args[0]) return m.reply(`❌ Masukkan ID Pesanan Sosmed Anda.\nContoh: *${p}${command} 102938*`);
         let orderId = args[0].replace(/[^0-9]/g, '');
 
-        m.reply(`🔄 Sedang mengecek status pesanan #${orderId}...`);
+        m.reply(`🔎 Sedang mengecek status pesanan #${orderId}...`);
         let res = await medanpedia.checkStatus(orderId);
         if (!res.ok) return m.reply(`❌ ${res.msg}`);
 
@@ -100,7 +101,7 @@ let handler = async (m, { conn, args, usedPrefix, command, isOwner }) => {
         txt += `↳ *Jumlah Awal:* ${d.start_count || 0}\n`;
         txt += `↳ *Sisa Pengerjaan:* ${d.remaint || d.remains || 0}\n`;
 
-        return m.reply(txt);
+        return replyThumb(conn, m, txt, 'katalog');
     }
 
     // ── 3. UBAH SETTING PROFIT SOSMED OWNER (.setsmmprofit <persen>) ──
@@ -124,7 +125,8 @@ let handler = async (m, { conn, args, usedPrefix, command, isOwner }) => {
         let res = await getCachedServices();
         if (!res.ok) return m.reply(`❌ ${res.msg}`);
 
-        let matches = res.data.filter(s =>
+        let services = res.data;
+        let matches = services.filter((s) =>
             (s.name && s.name.toLowerCase().includes(query)) ||
             (s.category && s.category.toLowerCase().includes(query)) ||
             (s.id && String(s.id) === query)
@@ -142,7 +144,7 @@ let handler = async (m, { conn, args, usedPrefix, command, isOwner }) => {
 
         if (matches.length > 15) txt += `_Menampilkan 15 dari ${matches.length} hasil pencarian._\n\n\n`;
         txt += `_Tertarik dengan layanan di atas? Yuk langsung pesan dengan format di atas kak!_`;
-        return m.reply(txt);
+        return replyThumb(conn, m, txt, 'katalog');
     }
 
     // ── 5. KATALOG JASA SOSIAL MEDIA TERSTRUKTUR (.sosmed / .instagram / .facebook / .tiktok / dll) ──
@@ -187,7 +189,7 @@ let handler = async (m, { conn, args, usedPrefix, command, isOwner }) => {
             expires: Date.now() + 5 * 60 * 1000,
         };
 
-        return m.reply(txt);
+        return replyThumb(conn, m, txt, 'katalog');
     }
 
     // ── TINGKAT 2: PILIH PLATFORM (misal: .sosmed facebook, .fb, .sosmed 4) ──
@@ -228,7 +230,7 @@ let handler = async (m, { conn, args, usedPrefix, command, isOwner }) => {
             expires: Date.now() + 5 * 60 * 1000,
         };
 
-        return m.reply(txt);
+        return replyThumb(conn, m, txt, selectedPlatform.key);
     }
 
     // Jika user ngetik .sosmed facebook 15 atau .fb 15 (buka sub-kategori 15)
@@ -267,7 +269,7 @@ let handler = async (m, { conn, args, usedPrefix, command, isOwner }) => {
     txt += `Contoh: *${p}belisosmed ${targetServices[0]?.id || '102'} @target 1000*\n\n\n`;
     txt += `_Siap melesatkan sosmed kamu kak! Langsung ketik format pemesanan di atas ya!_`;
 
-    return m.reply(txt);
+    return replyThumb(conn, m, txt, selectedPlatform.key);
 };
 
 // Tangkap balasan angka murni untuk sesi SMM Level 1 & Level 2

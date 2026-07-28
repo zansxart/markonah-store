@@ -65,15 +65,23 @@ global.media = {
 // Kalau file-nya belum ada, otomatis fallback ke global.media.thumbnail,
 // jadi aman walau belum semua gambar dibuat.
 global.thumb = {
-    menu:     './storage/assets/menu.jpg',       // tampilan menu utama
-    katalog:  './storage/assets/katalog.jpg',    // daftar kategori & produk
-    invoice:  './storage/assets/invoice.jpg',    // tagihan / QRIS pembayaran
-    wait:     './storage/assets/wait.jpg',       // "mohon ditunggu / diproses"
-    proses:   './storage/assets/proses.jpg',     // pesanan sedang diproses
-    done:     './storage/assets/done.jpg',       // pesanan selesai / terkirim
-    topup:    './storage/assets/topup.jpg',      // topup saldo berhasil
-    gagal:    './storage/assets/gagal.jpg',      // pembayaran/proses gagal
-    diterima: './storage/assets/diterima.jpg',   // pembayaran diterima / dikonfirmasi
+    menu:      './storage/assets/menu.jpg',       // tampilan menu utama
+    katalog:   './storage/assets/katalog.jpg',    // daftar kategori & produk
+    invoice:   './storage/assets/invoice.jpg',    // tagihan / QRIS pembayaran
+    wait:      './storage/assets/wait.jpg',       // "mohon ditunggu / diproses"
+    proses:    './storage/assets/proses.jpg',     // pesanan sedang diproses
+    done:      './storage/assets/done.jpg',       // pesanan selesai / terkirim
+    topup:     './storage/assets/topup.jpg',      // topup saldo berhasil
+    gagal:     './storage/assets/gagal.jpg',      // pembayaran/proses gagal
+    diterima:  './storage/assets/diterima.jpg',   // pembayaran diterima / dikonfirmasi
+    instagram: './storage/assets/instagram.jpg',
+    tiktok:    './storage/assets/tiktok.jpg',
+    youtube:   './storage/assets/youtube.jpg',
+    facebook:  './storage/assets/facebook.jpg',
+    twitter:   './storage/assets/twitter.jpg',
+    telegram:  './storage/assets/telegram.jpg',
+    whatsapp:  './storage/assets/whatsapp.jpg',
+    ecommerce: './storage/assets/ecommerce.jpg',
 };
 
 global.url = {
