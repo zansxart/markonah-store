@@ -20,8 +20,8 @@ let handler = async (m, { conn, usedPrefix, isOwner }) => {
     const readMore = String.fromCharCode(8206).repeat(4001);
 
     let userTag = `@${m.sender.split('@')[0]}`;
-    let intro = getRandomIntro(userTag, botName);
-    let footer = getRandomFooter();
+    let intro = getRandomIntro('menu', userTag, botName);
+    let footer = getRandomFooter('menu');
 
     let menuText = `*${botName.toUpperCase()}*\n\n${intro}\n\n\`STATISTIK STORE\`\n• Produk: ${stats.products}  |  Stok: ${stats.stock}  |  Transaksi: ${stats.trx}\n${readMore}\n\`DEPOSIT & SALDO\`\n↳ *${usedPrefix}saldo* Cek sisa saldo deposit\n↳ *${usedPrefix}topup <nominal>* Isi saldo deposit akun\n\n\`PRODUK DIGITAL & AKUN\`\n↳ *${usedPrefix}katalog* Lihat daftar katalog produk\n↳ *${usedPrefix}buy <kode>* Pembelian produk stok ready\n\n\`JASA SOSIAL MEDIA\`\n↳ *${usedPrefix}sosmed* Katalog layanan sosial media\n↳ *${usedPrefix}carisosmed <query>* Cari layanan sosmed\n↳ *${usedPrefix}belisosmed <id> <target> <qty>* Order jasa sosmed\n↳ *${usedPrefix}ceksosmed <order_id>* Cek status pesanan sosmed\n\n\`RIWAYAT & TRANSAKSI\`\n↳ *${usedPrefix}riwayat* Cek riwayat transaksi belanja\n↳ *${usedPrefix}cektrx <invoice>* Cek status transaksi invoice\n↳ *${usedPrefix}bataltrx* Batalkan pesanan pending\n`;
 
