@@ -25,6 +25,12 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
     }));
     if (isNaN(price)) return m.reply(`❌ Harga harus berupa angka! Contoh: ${(usedPrefix || '.') + command} spotify1|Spotify|15000`);
 
+    let cleanId = id.trim();
+    let existing = storeDB.getProduct(cleanId);
+    if (existing) {
+        return m.reply(`❌ Produk dengan Kode/ID *${cleanId}* sudah ada! (*${existing.name}*).\n\n💡 Gunakan *${usedPrefix}editproduk ${cleanId} ...* atau *${usedPrefix}setharga ${cleanId} <harga>* jika ingin mengedit data produk ini, atau gunakan Kode/ID lain.`);
+    }
+
     category = category || 'Umum';
     description = description || '';
     // Tipe: manual/po = Pre-Order (disiapkan owner), stock/auto = kirim otomatis.
