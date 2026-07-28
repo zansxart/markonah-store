@@ -19,6 +19,13 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
     let trx = storeDB.getTransaction(inv);
     if (!trx) return m.reply('Transaksi tidak ditemukan!');
 
+    // Jangan mundurkan status transaksi yang sudah selesai/batal.
+    // Order SMM via `belisosmed` sudah auto-proses & `done`; reset ke
+    // `process` bikin `acc` menembak ulang order ke provider (dobel).
+    if (trx.status === 'done' || trx.status === 'cancel') {
+        return m.reply(`❌ Invoice ${copyable(inv)} sudah berstatus *${trx.status}*, tidak bisa diproses ulang.`);
+    }
+
     storeDB.updateTransactionStatus(inv, 'process');
 
     // Konfirmasi singkat ke owner.

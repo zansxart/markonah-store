@@ -80,6 +80,32 @@ function findPlatform(input = '') {
     return PLATFORMS.find(pf => pf.key === str || pf.aliases.includes(str) || pf.name.toLowerCase().includes(str));
 }
 
+/**
+ * Validasi target sebelum order dikirim ke provider.
+ * Hanya menangkap kesalahan yang PASTI salah (kosong, placeholder contoh,
+ * ada spasi). Soal jenis link valid biar provider yang menentukan.
+ * Return null kalau target OK, atau { reason, hint } kalau bermasalah.
+ */
+function validateTarget(target = '', platformKey = '') {
+    const t = String(target).trim();
+
+    if (!t) {
+        return { reason: 'Target kosong.', hint: 'Isi target dengan link/username tujuan.' };
+    }
+
+    // Placeholder dari contoh yang belum diganti user.
+    if (/^(<.*>|target|username|link|url|@?target|@?username)$/i.test(t)) {
+        return { reason: 'Target masih berupa contoh/placeholder.', hint: 'Ganti dengan link atau username asli, bukan tulisan contohnya.' };
+    }
+
+    // Target berisi spasi = jelas bukan satu link/username valid.
+    if (/\s/.test(t)) {
+        return { reason: 'Target mengandung spasi.', hint: 'Target harus satu link/username tanpa spasi.' };
+    }
+
+    return null;
+}
+
 let handler = async (m, { conn, args, usedPrefix, command, isOwner }) => {
     const cmd = command.toLowerCase();
     const p = usedPrefix !== undefined && usedPrefix !== null ? usedPrefix : '';
@@ -192,6 +218,20 @@ let handler = async (m, { conn, args, usedPrefix, command, isOwner }) => {
         let totalPrice = medanpedia.calculatePrice(service.price, qty);
         let user = storeDB.getOrCreateUser(m.sender, m.pushName || 'User');
         let platformKey = getMasterPlatformKey(service.category);
+
+        // Validasi target SEBELUM saldo dipotong — cegah order gagal/nyangkut
+        // di provider karena link salah (mis. link /share/ Facebook, placeholder
+        // yang belum diganti, atau username kosong).
+        let targetIssue = validateTarget(target, platformKey);
+        if (targetIssue) {
+            let txt = `\`TARGET SEPERTINYA SALAH\`\n\n` +
+                `↳ 🛍️ *Layanan:* ${service.name}\n` +
+                `↳ 🎯 *Target Anda:* ${target}\n` +
+                `↳ ⚠️ *Masalah:* ${targetIssue.reason}\n\n` +
+                `${targetIssue.hint}\n\n` +
+                `_Saldo *belum* dipotong. Silakan ulangi dengan target yang benar ya kak._`;
+            return replyThumb(conn, m, txt, 'gagal');
+        }
 
         if (user.balance < totalPrice) {
             let kurang = totalPrice - user.balance;
