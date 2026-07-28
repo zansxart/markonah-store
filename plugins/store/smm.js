@@ -34,9 +34,9 @@ async function getCachedServices() {
 }
 
 const PLATFORMS = [
-    { key: 'ecommerce', aliases: ['shop', 'shopee', 'tokopedia'], name: 'SHOPEE & TOKOPEDIA', emoji: '🛒' },
     { key: 'facebook', aliases: ['fb', 'facebook'], name: 'FACEBOOK', emoji: '📘' },
     { key: 'instagram', aliases: ['ig', 'instagram'], name: 'INSTAGRAM', emoji: '📸' },
+    { key: 'ecommerce', aliases: ['shop', 'shopee', 'tokopedia'], name: 'SHOPEE & TOKOPEDIA', emoji: '🛒' },
     { key: 'telegram', aliases: ['tg', 'telegram'], name: 'TELEGRAM', emoji: '✈️' },
     { key: 'tiktok', aliases: ['tt', 'tiktok'], name: 'TIKTOK', emoji: '🎵' },
     { key: 'twitter', aliases: ['tw', 'twitter', 'x'], name: 'TWITTER / X', emoji: '🐦' },
