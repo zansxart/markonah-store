@@ -26,7 +26,28 @@ let handler = async (m, { conn, usedPrefix, isOwner }) => {
     let menuText = `*${botName.toUpperCase()}*\n\n${intro}\n\n\`STATISTIK STORE\`\n• Produk: ${stats.products}  |  Stok: ${stats.stock}  |  Transaksi: ${stats.trx}\n${readMore}\n\`DEPOSIT & SALDO\`\n↳ *${usedPrefix}saldo* Cek sisa saldo deposit\n↳ *${usedPrefix}topup <nominal>* Isi saldo deposit akun\n\n\`PRODUK DIGITAL & AKUN\`\n↳ *${usedPrefix}katalog* Lihat daftar katalog produk\n↳ *${usedPrefix}buy <kode>* Pembelian produk stok ready\n\n\`JASA SOSIAL MEDIA\`\n↳ *${usedPrefix}sosmed* Katalog layanan sosial media\n↳ *${usedPrefix}carisosmed <query>* Cari layanan sosmed\n↳ *${usedPrefix}belisosmed <id> <target> <qty>* Order jasa sosmed\n↳ *${usedPrefix}ceksosmed <order_id>* Cek status pesanan sosmed\n\n\`RIWAYAT & TRANSAKSI\`\n↳ *${usedPrefix}riwayat* Cek riwayat transaksi belanja\n↳ *${usedPrefix}cektrx <invoice>* Cek status transaksi invoice\n↳ *${usedPrefix}bataltrx* Batalkan pesanan pending\n`;
 
     if (isOwner) {
-        menuText += `\n\`ADMIN & OWNER\`\n↳ *${usedPrefix}setharga <id> <harga>* Ubah harga instan (contoh: .sh spotify1 20k)\n↳ *${usedPrefix}editproduk <id> <field> <val>* Ubah detail produk\n↳ *${usedPrefix}acc <invoice>* Konfirmasi bayar\n↳ *${usedPrefix}acc <invoice> <isi>* Kirim pesanan ke buyer\n↳ *${usedPrefix}proses <invoice>* Tandai sedang diproses\n↳ *${usedPrefix}medansaldo* Cek saldo provider sosmed\n↳ *${usedPrefix}addsaldo <user> <nominal>* Tambah saldo user\n↳ *${usedPrefix}minsaldo <user> <nominal>* Potong saldo user\n↳ *${usedPrefix}setsmmprofit <persen>* Set profit SMM\n↳ *${usedPrefix}addproduk* Tambah produk stok\n↳ *${usedPrefix}delproduk <id>* Hapus produk\n↳ *${usedPrefix}addstok <id>* Isi stok akun produk\n↳ *${usedPrefix}liststok* Cek stok ketersediaan\n↳ *${usedPrefix}done <invoice>* Selesai & kirim stok\n↳ *${usedPrefix}kirim <invoice> <data>* Kirim manual\n↳ *${usedPrefix}batal <invoice>* Batal pesanan\n↳ *${usedPrefix}setqris <data>* Update QRIS\n↳ *${usedPrefix}setprefix <prefix>* Ubah prefix\n↳ *${usedPrefix}rekap* Rekap omset penjualan\n`;
+        menuText += `\n\`ADMIN & OWNER STORE\`\n` +
+            `↳ *${usedPrefix}addproduk* Tambah produk baru (.ap)\n` +
+            `↳ *${usedPrefix}editproduk <id> <val>* Edit data produk (.ep)\n` +
+            `↳ *${usedPrefix}setharga <id> <harga>* Ubah harga instan (.sh)\n` +
+            `↳ *${usedPrefix}delproduk <id>* Hapus produk (.dp)\n` +
+            `↳ *${usedPrefix}addstok <id>* Isi stok produk (.as)\n` +
+            `↳ *${usedPrefix}liststok* Cek stok ketersediaan (.ls)\n` +
+            `↳ *${usedPrefix}acc <invoice> [isi]* Konfirmasi & kirim pesanan\n` +
+            `↳ *${usedPrefix}proses <invoice>* Tandai pesanan diproses\n` +
+            `↳ *${usedPrefix}done <invoice>* Tandai pesanan selesai\n` +
+            `↳ *${usedPrefix}kirim <invoice> <data>* Kirim data pesanan manual\n` +
+            `↳ *${usedPrefix}batal <invoice>* Batalkan pesanan\n` +
+            `↳ *${usedPrefix}addsaldo <user> <nominal>* Tambah saldo user\n` +
+            `↳ *${usedPrefix}minsaldo <user> <nominal>* Potong saldo user\n` +
+            `↳ *${usedPrefix}setsaldo <user> <nominal>* Set saldo user\n` +
+            `↳ *${usedPrefix}listsaldo* Daftar saldo seluruh user\n` +
+            `↳ *${usedPrefix}rekap* Rekap omset & laporan penjualan\n` +
+            `↳ *${usedPrefix}broadcast <pesan>* Kirim pengumuman / BC\n` +
+            `↳ *${usedPrefix}medansaldo* Cek saldo provider sosmed\n` +
+            `↳ *${usedPrefix}setsmmprofit <persen>* Atur % margin profit SMM\n` +
+            `↳ *${usedPrefix}setqris <string>* Atur QRIS pembayaran\n` +
+            `↳ *${usedPrefix}setprefix <prefix>* Ubah prefix perintah bot\n`;
     }
 
     menuText += `\n\n${footer}`;

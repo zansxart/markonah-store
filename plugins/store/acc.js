@@ -18,13 +18,17 @@ import { sendThumb } from '../../lib/ui.js';
 let handler = async (m, { conn, args, text, usedPrefix, command, isOwner }) => {
     if (!isOwner) return m.reply(`❌ Perintah ini hanya untuk Owner.`);
 
-    // Invoice dari args[0] atau dari pesan yang di-reply.
+    // Invoice: kalau reply pesan ber-invoice, ambil dari situ & SELURUH teks
+    // yang diketik = isi pesanan. Kalau tidak reply, args[0] = invoice, sisanya isi.
     let repliedInvoice = m.quoted ? resolveInvoice(m, null) : null;
-    let invoiceId = resolveInvoice(m, args[0]);
-
-    // Isi pesanan (MODE 2): kalau reply, seluruh teks = isi; kalau ketik manual,
-    // isi = argumen setelah invoice.
-    let isiPesanan = repliedInvoice ? args.join(' ').trim() : args.slice(1).join(' ').trim();
+    let invoiceId, isiPesanan;
+    if (repliedInvoice) {
+        invoiceId = repliedInvoice;
+        isiPesanan = args.join(' ').trim();
+    } else {
+        invoiceId = resolveInvoice(m, args[0]);
+        isiPesanan = args.slice(1).join(' ').trim();
+    }
 
     if (!invoiceId) {
         return m.reply(`❌ Masukkan Invoice ID atau reply pesan yang memuat invoice.\nContoh: *${usedPrefix}${command} INV-K7P2*\nKirim pesanan: *${usedPrefix}${command} INV-K7P2 email: xxx | pass: xxx*\nAtau reply pesan invoice + ketik isi akunnya.`);
