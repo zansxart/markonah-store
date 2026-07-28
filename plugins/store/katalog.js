@@ -44,7 +44,8 @@ export function renderCategoryProducts(category, products, prefix = '.') {
         const stockBadge = stockCount > 0 ? `Ready (${stockCount})` : `Kosong`;
         
         text += `↳ 🏷️ *${prod.name}*\n`;
-        text += `  Kode: *${prod.id}*  |  Harga: *Rp ${rp(prod.price)}*\n`;
+        text += `  Kode: *${prod.id}*\n`;
+        text += `  Harga: *Rp ${rp(prod.price)}*\n`;
         text += `  Stok: *${stockBadge}*\n`;
         if (prod.description) text += `  _Ket: ${prod.description}_\n`;
         text += `\n`;
