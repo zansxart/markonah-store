@@ -292,7 +292,7 @@ let handler = async (m, { conn, args, usedPrefix, command, isOwner }) => {
 
         PLATFORMS.forEach((pf, i) => {
             let count = platformMap[pf.key]?.length || 0;
-            txt += `${i + 1}. 🛍️ *${pf.name}* ${pf.emoji} _(${count} Layanan)_\n`;
+            txt += `${i + 1}. 🛍️ *${pf.name}* _(${count} Layanan)_\n`;
         });
 
         txt += `\n*Cara Akses:* Balas angka di atas (contoh: *1*) atau ketik *${p}${command} <nomor_atau_nama_platform>*\n`;
