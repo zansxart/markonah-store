@@ -147,6 +147,110 @@ let handler = async (m, { conn, args, usedPrefix, command, isOwner }) => {
         return replyThumb(conn, m, txt, 'katalog');
     }
 
+    // ── 5. BELI JASA SOSMED (.belisosmed <id_layanan> <target> <jumlah>) ──
+    if (['belisosmed', 'ordersosmed', 'ordersmm', 'belismm', 'smmorder'].includes(cmd)) {
+        if (!args[0] || !args[1] || !args[2]) {
+            return replyThumb(conn, m, usage({
+                prefix: p, command,
+                desc: 'Order Jasa Sosial Media (Followers, Likes, Views, dll)',
+                format: '<id_layanan> <target> <jumlah>',
+                examples: ['102 @username 1000', '450 https://instagram.com/p/xxx 500'],
+                note: 'Cari ID layanan di katalog dengan *' + p + 'sosmed* atau *' + p + 'carisosmed <keyword>*.',
+            }), 'katalog');
+        }
+
+        let serviceId = args[0].trim();
+        let target = args[1].trim();
+        let qty = parseInt(args[2].replace(/[^0-9]/g, ''));
+
+        if (isNaN(qty) || qty < 1) {
+            return replyThumb(conn, m, `❌ Jumlah pesanan harus berupa angka murni minimal 1.`, 'gagal');
+        }
+
+        let sRes = await getCachedServices();
+        if (!sRes.ok) return replyThumb(conn, m, `❌ Gagal mengambil data layanan provider: ${sRes.msg}`, 'gagal');
+
+        let service = sRes.data.find(s => String(s.id) === String(serviceId));
+        if (!service) {
+            return replyThumb(conn, m, `❌ Layanan Sosmed dengan ID #${serviceId} tidak ditemukan! Ketik *${p}carisosmed <keyword>* untuk mencari ID layanan.`, 'gagal');
+        }
+
+        let min = parseInt(service.min || 1);
+        let max = parseInt(service.max || 1000000);
+        if (qty < min || qty > max) {
+            return replyThumb(conn, m, `❌ Jumlah pesanan untuk *${service.name}* minimal *${rp(min)}* dan maksimal *${rp(max)}*.`, 'gagal');
+        }
+
+        let totalPrice = medanpedia.calculatePrice(service.price, qty);
+        let user = storeDB.getOrCreateUser(m.sender, m.pushName || 'User');
+        let platformKey = getMasterPlatformKey(service.category);
+
+        if (user.balance < totalPrice) {
+            let kurang = totalPrice - user.balance;
+            let txt = `\`SALDO TIDAK CUKUP\`\n\n` +
+                `↳ 🛍️ *Layanan:* ${service.name}\n` +
+                `↳ 🔢 *Jumlah:* ${rp(qty)}\n` +
+                `↳ 💰 *Total Harga:* Rp ${rp(totalPrice)}\n` +
+                `↳ 💳 *Saldo Anda:* Rp ${rp(user.balance)}\n` +
+                `↳ ⚠️ *Kekurangan:* Rp ${rp(kurang)}\n\n` +
+                `Isi saldo dulu dengan ketik:\n` +
+                `${copyable(`${p}topup ${kurang}`)}\n\n\n` +
+                `_Silakan melakukan topup saldo deposit terlebih dahulu ya kak!_`;
+            return replyThumb(conn, m, txt, 'gagal');
+        }
+
+        // Potong saldo user
+        storeDB.updateUserBalance(m.sender, -totalPrice);
+
+        let invId = generateInvoiceId();
+        storeDB.createTransaction({
+            invoice_id: invId,
+            buyer_jid: m.sender,
+            chat_jid: m.chat,
+            product_id: `smm_${service.id}`,
+            product_name: service.name,
+            qty: qty,
+            price_per_item: totalPrice / qty,
+            total_price: totalPrice,
+            status: 'paid',
+            trx_type: 'smm',
+        });
+
+        await replyThumb(conn, m, `🔄 Sedang mengirim pesanan *${service.name}* ke server provider...`, platformKey);
+
+        let orderRes = await medanpedia.createOrder(service.id, target, qty);
+
+        if (orderRes.ok) {
+            let orderId = orderRes.data?.id || orderRes.data?.order_id || 'OK';
+            let txtSuccess = `\`PESANAN SOSMED DIPROSES\`\n\n` +
+                `↳ 🧾 *Invoice:* ${copyable(invId)}\n` +
+                `↳ 🛍️ *Layanan:* ${service.name}\n` +
+                `↳ 🎯 *Target:* ${target}\n` +
+                `↳ 🔢 *Jumlah:* ${rp(qty)}\n` +
+                `↳ 💰 *Total Harga:* Rp ${rp(totalPrice)}\n` +
+                `↳ 🆔 *Order ID:* #${orderId}\n` +
+                `↳ 📊 *Status:* 🔄 Diproses\n\n\n` +
+                `_Cek status pengerjaan kapan saja dengan ketik *${p}ceksosmed ${orderId}*_`;
+
+            await replyThumb(conn, m, txtSuccess, platformKey);
+
+            // Notif owner & grup
+            notifyNewOrder(conn, { invoiceId: invId, buyerJid: m.sender, productName: service.name, total: totalPrice, chatJid: m.chat });
+            return;
+        } else {
+            // Refund saldo jika order provider gagal
+            storeDB.updateUserBalance(m.sender, totalPrice);
+            storeDB.updateTransactionStatus(invId, 'cancel');
+
+            let txtFail = `\`PESANAN GAGAL - SALDO DI-REFUND\`\n\n` +
+                `↳ 🛍️ *Layanan:* ${service.name}\n` +
+                `↳ ❌ *Alasan Gagal:* ${orderRes.msg}\n` +
+                `↳ 💳 *Saldo:* Dikembalikan (Rp ${rp(totalPrice)})\n\n\n` +
+                `_Saldo Anda telah dikembalikan secara otomatis kak._`;
+            return replyThumb(conn, m, txtFail, 'gagal');
+        }
+    }
+
     // ── 5. KATALOG JASA SOSIAL MEDIA TERSTRUKTUR (.sosmed / .instagram / .facebook / .tiktok / dll) ──
     let isDirectPlatformCmd = ['instagram', 'ig', 'tiktok', 'tt', 'youtube', 'yt', 'facebook', 'fb', 'telegram', 'tg', 'twitter', 'tw'].includes(cmd);
 
