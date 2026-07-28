@@ -72,13 +72,19 @@ function showCategoryProducts(m, conn, category, usedPrefix) {
 let handler = async (m, { conn, args, usedPrefix }) => {
     const p = usedPrefix !== undefined && usedPrefix !== null ? usedPrefix : '.';
 
-    // Ada argumen → langsung ke produk (dukung nama kategori atau angka bila ada sesi)
+    // Ada argumen → langsung ke produk (dukung nama kategori atau angka walau tanpa sesi)
     if (args[0]) {
         let category = null;
         if (/^\d+$/.test(args[0])) {
-            const session = conn.katalogSession?.[m.sender];
-            category = resolveCategoryByNumber(session, args[0]);
-            if (!category) return m.reply(`❌ Nomor kategori tidak valid. Ketik *${p}katalog* dulu untuk lihat daftar.`);
+            const all = storeDB.getCategories();
+            const idx = parseInt(args[0], 10) - 1;
+            if (idx >= 0 && idx < all.length) {
+                category = all[idx];
+            } else {
+                const session = conn.katalogSession?.[m.sender];
+                category = resolveCategoryByNumber(session, args[0]);
+            }
+            if (!category) return m.reply(`❌ Nomor kategori ${args[0]} tidak valid. Pilihan kategori 1-${all.length}. Ketik *${p}katalog* untuk melihat daftar.`);
         } else {
             // Cari kategori case-insensitive dari daftar yang ada
             const all = storeDB.getCategories();

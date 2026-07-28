@@ -51,7 +51,7 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
 
     // Cek stok sesuai tipe: manual pakai counter manual_stock, stock pakai tabel stock.
     let stock = product.type === 'manual' ? (product.manual_stock || 0) : storeDB.getStockCount(productId);
-    if (stock < qty) return m.reply(`❌ Stok tidak cukup. Sisa stok: ${stock}`);
+    if (stock < qty) return replyThumb(conn, m, `\`STOK KOSONG / TIDAK CUKUP\`\n\n↳ 📦 *Produk:* ${product.name}\n↳ 🔢 *Permintaan:* ${qty}\n↳ 📊 *Sisa Stok:* ${stock}\n\n\n_Mohon maaf kak, stok produk sedang tidak mencukupi._`, 'gagal');
 
     let subtotal = product.price * qty;
     let user = storeDB.getOrCreateUser(m.sender, m.pushName || 'User');
@@ -65,7 +65,7 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
         expires: Date.now() + SESSION_TTL,
     };
 
-    return m.reply(renderPaymentOptions(product, qty, subtotal, user.balance));
+    return replyThumb(conn, m, renderPaymentOptions(product, qty, subtotal, user.balance), 'invoice');
 };
 
 handler.before = async (m, { conn, usedPrefix }) => {
@@ -94,7 +94,7 @@ handler.before = async (m, { conn, usedPrefix }) => {
 
     // ── OPSI 2: OTOMATIS (PG BELUM JADI) ──
     if (isAuto) {
-        await m.reply(`\`PAYMENT OTOMATIS\`\n\nMohon maaf, pembayaran otomatis belum tersedia saat ini.\nSilakan balas *1* untuk bayar manual via saldo.`);
+        await replyThumb(conn, m, `\`PAYMENT OTOMATIS\`\n\nMohon maaf, pembayaran otomatis belum tersedia saat ini.\nSilakan balas *1* untuk bayar manual via saldo.`, 'wait');
         return true; // sesi tetap hidup, user bisa pilih 1
     }
 
@@ -103,33 +103,33 @@ handler.before = async (m, { conn, usedPrefix }) => {
 
     const product = storeDB.getProduct(session.productId);
     if (!product) {
-        await m.reply(`❌ Produk sudah tidak tersedia. Silakan cek ${prefix}katalog.`);
+        await replyThumb(conn, m, `❌ Produk sudah tidak tersedia. Silakan cek ${prefix}katalog.`, 'gagal');
         return true;
     }
 
     // Pastikan stok masih cukup (bisa keburu habis saat user milih opsi).
     const stockNow = product.type === 'manual' ? (product.manual_stock || 0) : storeDB.getStockCount(session.productId);
     if (stockNow < session.qty) {
-        await m.reply(`❌ Yah, stok keburu habis. Sisa stok: ${stockNow}. Pesanan dibatalkan.`);
+        await replyThumb(conn, m, `\`STOK KOSONG / TIDAK CUKUP\`\n\n↳ 📦 *Produk:* ${product.name}\n↳ 🔢 *Permintaan:* ${session.qty}\n↳ 📊 *Sisa Stok:* ${stockNow}\n\n\n_Mohon maaf, stok produk keburu habis. Pesanan dibatalkan._`, 'gagal');
         return true;
     }
 
     const user = storeDB.getOrCreateUser(m.sender, m.pushName || 'User');
 
-    // Saldo kurang → arahkan topup
+    // Saldo kurang → arahkan topup dengan thumbnail gagal.jpg
     if (user.balance < session.subtotal) {
         const kurang = session.subtotal - user.balance;
-        await m.reply(
-            `\`SALDO TIDAK CUKUP\`\n\n` +
-            `↳ *Total Pesanan:* Rp ${rp(session.subtotal)}\n` +
-            `↳ *Saldo Anda:* Rp ${rp(user.balance)}\n` +
-            `↳ *Kekurangan:* Rp ${rp(kurang)}\n\n` +
+        const msg = `\`SALDO TIDAK CUKUP\`\n\n` +
+            `↳ 📦 *Produk:* ${product.name}\n` +
+            `↳ 💰 *Total Pesanan:* Rp ${rp(session.subtotal)}\n` +
+            `↳ 💳 *Saldo Anda:* Rp ${rp(user.balance)}\n` +
+            `↳ ⚠️ *Kekurangan:* Rp ${rp(kurang)}\n\n` +
             `Isi saldo dulu dengan ketik:\n` +
             `${copyable(`${prefix}topup ${kurang}`)}\n\n` +
             `Setelah saldo terisi, ulangi:\n` +
             `${copyable(`${prefix}buy ${session.productId}${session.qty > 1 ? ' ' + session.qty : ''}`)}\n\n\n` +
-            `_Silakan melakukan topup terlebih dahulu ya!_`
-        );
+            `_Silakan melakukan topup terlebih dahulu ya kak!_`;
+        await replyThumb(conn, m, msg, 'gagal');
         return true;
     }
 
