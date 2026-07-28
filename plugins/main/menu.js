@@ -43,6 +43,8 @@ let handler = async (m, { conn, usedPrefix, isOwner }) => {
             `↳ *${usedPrefix}setsaldo <user> <nominal>* Set saldo user\n` +
             `↳ *${usedPrefix}listsaldo* Daftar saldo seluruh user\n` +
             `↳ *${usedPrefix}rekap* Rekap omset & laporan penjualan\n` +
+            `↳ *${usedPrefix}resetrekap* Reset periode laporan omset (.rr)\n` +
+            `↳ *${usedPrefix}resettrx* Reset seluruh riwayat transaksi (.rt)\n` +
             `↳ *${usedPrefix}broadcast <pesan>* Kirim pengumuman / BC\n` +
             `↳ *${usedPrefix}medansaldo* Cek saldo provider sosmed\n` +
             `↳ *${usedPrefix}setsmmprofit <persen>* Atur % margin profit SMM\n` +
