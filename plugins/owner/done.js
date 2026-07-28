@@ -19,6 +19,18 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
     let trx = storeDB.getTransaction(inv);
     if (!trx) return m.reply('Transaksi tidak ditemukan!');
 
+    // Order SMM diproses otomatis via `belisosmed` (langsung tembak provider).
+    // `done` khusus produk manual/akun — kalau dipakai ke SMM cuma bikin pesan
+    // "data akun" nyasar ke pembeli followers. Arahkan owner ke ceksosmed.
+    if (trx.trx_type === 'smm') {
+        return m.reply(`ℹ️ Invoice ${copyable(inv)} adalah pesanan *Jasa Sosmed*, tidak perlu di-*done* manual.\nOrder sudah otomatis dikirim ke provider. Cek progres pengerjaan dengan *${usedPrefix || '.'}ceksosmed ${trx.smm_order_id || '<order_id>'}*.`);
+    }
+
+    // Jangan proses ulang transaksi yang sudah selesai/batal.
+    if (trx.status === 'done' || trx.status === 'cancel') {
+        return m.reply(`❌ Invoice ${copyable(inv)} sudah berstatus *${trx.status}*.`);
+    }
+
     let product = storeDB.getProduct(trx.product_id);
     let stockDataStr = 'Silakan hubungi admin untuk detail pesanan.';
 
