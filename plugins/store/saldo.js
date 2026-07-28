@@ -20,7 +20,6 @@ const TOPUP_SESSION_TTL = 5 * 60 * 1000; // opsi pembayaran topup berlaku 5 meni
 let handler = async (m, { conn, args, usedPrefix, command, isOwner }) => {
     const cmd = command.toLowerCase();
 
-    // ── 1. CEK SALDO USER (.saldo / .mybalance / .ceksaldo) ──
     if (cmd === 'saldo' || cmd === 'mybalance' || cmd === 'ceksaldo') {
         let userJid = m.sender;
         let userName = m.pushName || 'User';
@@ -52,7 +51,6 @@ let handler = async (m, { conn, args, usedPrefix, command, isOwner }) => {
         return replyThumb(conn, m, txt, 'topup', { mentions: [userJid] });
     }
 
-    // ── 2. TOPUP DEPOSIT (.topup / .deposit) ──
     if (cmd === 'topup' || cmd === 'deposit') {
         if (!args[0]) return m.reply(usage({
             prefix: usedPrefix, command,
@@ -89,7 +87,6 @@ let handler = async (m, { conn, args, usedPrefix, command, isOwner }) => {
         return replyThumb(conn, m, txt, 'topup');
     }
 
-    // ── 3. OWNER COMMANDS (ADD, MIN, SET SALDO, LIST) ──
     if (!isOwner) return m.reply(`❌ Perintah ini hanya untuk Owner.`);
 
     if (cmd === 'addsaldo') {
@@ -175,13 +172,11 @@ handler.before = async (m, { conn, usedPrefix }) => {
     const isAuto = text === '2' || text === 'otomatis';
     if (!isManual && !isAuto) return;
 
-    // ── OPSI 2: OTOMATIS (PG BELUM JADI) ──
     if (isAuto) {
         await m.reply(`\`TOPUP OTOMATIS\`\n\nMohon maaf, topup otomatis belum tersedia saat ini.\nSilakan balas *1* untuk topup manual via QRIS.`);
         return true; // sesi tetap hidup, user bisa pilih 1
     }
 
-    // ── OPSI 1: MANUAL (QRIS + KONFIRMASI ADMIN) ──
     delete conn.topupSession[m.sender];
 
     const nominal = session.nominal;

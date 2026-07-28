@@ -114,7 +114,7 @@ let handler = async (m, { conn, args, usedPrefix }) => {
 // Tangkap balasan angka setelah user buka katalog (sesi aktif & belum expired).
 handler.before = async (m, { conn, usedPrefix }) => {
     const text = (m.text || '').trim();
-    if (!/^\d+$/.test(text)) return; // hanya reaksi ke pesan yang murni angka
+    if (!/^\d+$/.test(text)) return;
 
     // Kalau ada flow lain aktif (buy/topup/smm), biarkan flow itu yang menangani —
     // jangan ikut campur, biar tidak dobel-balas.
@@ -123,7 +123,6 @@ handler.before = async (m, { conn, usedPrefix }) => {
     const session = conn.katalogSession?.[m.sender];
     if (!session) return; // tidak ada sesi → jangan ganggu obrolan biasa
 
-    // Expired → bersihkan & diam
     if (Date.now() > session.expires) {
         delete conn.katalogSession[m.sender];
         return;
@@ -136,9 +135,9 @@ handler.before = async (m, { conn, usedPrefix }) => {
         return true;
     }
 
-    delete conn.katalogSession[m.sender]; // sekali pakai
+    delete conn.katalogSession[m.sender];
     await showCategoryProducts(m, conn, category, usedPrefix);
-    return true; // stop, jangan diproses plugin lain
+    return true;
 };
 
 handler.help = ['katalog', 'stok', 'store', 'shop', 'produk', 'list'];

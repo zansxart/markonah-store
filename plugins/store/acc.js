@@ -37,7 +37,6 @@ let handler = async (m, { conn, args, text, usedPrefix, command, isOwner }) => {
     let trx = storeDB.getTransaction(invoiceId);
     if (!trx) return m.reply(`❌ Transaksi ${invoiceId} tidak ditemukan.`);
 
-    // ── MODE 2: .acc <invoice> <isi akun/produk> → kirim ke PC buyer ──
     if (isiPesanan) {
         if (trx.status === 'done' || trx.status === 'cancel') {
             return m.reply(`❌ Transaksi ${invoiceId} sudah berstatus '${trx.status}'.`);
@@ -69,7 +68,6 @@ let handler = async (m, { conn, args, text, usedPrefix, command, isOwner }) => {
         return m.reply(`✅ Pesanan ${invoiceId} selesai & sudah dikirim ke PC pembeli (@${trx.buyer_jid.split('@')[0]}).`, null, { mentions: [trx.buyer_jid] });
     }
 
-    // ── MODE 1: .acc <invoice> → konfirmasi pembayaran ──
     if (trx.status !== 'pending' && trx.status !== 'process') {
         return m.reply(`❌ Transaksi ${invoiceId} sudah berstatus '${trx.status}'.`);
     }
@@ -81,7 +79,6 @@ let handler = async (m, { conn, args, text, usedPrefix, command, isOwner }) => {
         return m.reply(`❌ Gagal memproses transaksi: ${res.reason}`);
     }
 
-    // Kirim status card dengan thumbnail diterima.jpg
     await sendStatusCard(conn, {
         title: 'PEMBAYARAN DITERIMA',
         invoiceId,

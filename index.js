@@ -39,7 +39,6 @@ async function start() {
         } else if (msg === 'uptime') {
             child.send({ type: 'uptime', uptime: process.uptime() });
         } else if (msg.type === 'heartbeat') {
-            // Heartbeat received
         } else if (msg.type === 'dashboard') {
             console.clear();
             showStoreCartBanner();

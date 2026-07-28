@@ -36,7 +36,6 @@ let handler = async (m, { conn, text, args, usedPrefix, command }) => {
 
     let id = '', field = '', value = '', updates = {};
 
-    // ── OPSI A: Menggunakan Pipa (|) ──
     if (text.includes('|')) {
         let parts = text.split('|').map(v => v.trim());
         id = parts[0];
@@ -66,7 +65,6 @@ let handler = async (m, { conn, text, args, usedPrefix, command }) => {
             value = parts.slice(2).join('|');
         }
     }
-    // ── OPSI B: Menggunakan Spasi ──
     else {
         id = args[0]?.trim();
         let product = storeDB.getProduct(id);

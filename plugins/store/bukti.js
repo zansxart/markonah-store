@@ -16,7 +16,6 @@ import { displayPrefix } from '../../lib/prefix-util.js';
 let handler = async () => {};
 
 handler.before = async (m, { conn, usedPrefix }) => {
-    // Hanya reaksi ke pesan gambar.
     if (m.mediaType !== 'imageMessage') return;
 
     // Pembeli harus punya transaksi aktif yang masih nunggu pembayaran.

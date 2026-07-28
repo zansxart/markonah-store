@@ -39,7 +39,6 @@ global.__require = getRequire;
 
 const __dirname = global.__dirname(import.meta.url);
 
-// Global DB
 global.db = { data: { users: {}, chats: {}, settings: {}, stats: {} } };
 global.plugins = {};
 global.timestamp = { start: new Date() };
@@ -56,7 +55,6 @@ global.config.prefix = normalizedPrefix;
 global.prefix = resolvedPrefix;
 global.__noPrefixMode = isNoPrefixMode(normalizedPrefix);
 
-// Error handlers
 process.on('unhandledRejection', (reason, promise) => {
     console.error(chalk.red('[UNHANDLED REJECTION]'), reason);
 });
@@ -109,7 +107,6 @@ function scheduleReconnect(reason = 'unknown') {
 const pluginDir = path.join(__dirname, 'plugins');
 await loadPlugins(pluginDir);
 
-// ── Hot-reload plugin: pantau folder plugins, reload otomatis tanpa restart ──
 // reloadPlugin sudah cek syntax dulu — kalau file error, versi lama tetap jalan.
 const pluginWatcher = chokidar.watch(pluginFolder, {
     ignoreInitial: true,
@@ -212,9 +209,7 @@ async function startBot() {
     let conn = global.conn = makeWASocket(connectionOptions);
     conn.isInit = true;
 
-    // ═════════════════════════════════════════
     // │  PAIRING CODE LOGIC (PERSIS SAMA DENGAN ONAH)
-    // ═════════════════════════════════════════
 
     const PAIRING_MAX_ATTEMPTS = 15;
     const PAIRING_RETRY_DELAY_MS = 3000;
@@ -377,9 +372,7 @@ async function startBot() {
     }
 }
 
-// ═════════════════════════════════════════
 // │  PEMILIHAN MODE LOGIN (PAIRING / QR)
-// ═════════════════════════════════════════
 
 // Keputusan mode tanpa efek samping (mudah dites). Return 'qr' | 'pairing' | 'ask'.
 export function decideLoginMode({ registered, argv = [], isTTY, configUseQR, savedMode }) {
@@ -409,7 +402,6 @@ function saveMode(mode) {
     try { fs.writeFileSync(LOGIN_MODE_FILE, mode); } catch {}
 }
 
-// Baca creds.json untuk tahu apakah sudah login.
 function isRegistered() {
     try {
         const credsPath = path.resolve(`./${global.config?.sessions || 'sessions'}/creds.json`);

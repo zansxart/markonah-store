@@ -84,7 +84,6 @@ let handler = async (m, { conn, args, usedPrefix, command, isOwner }) => {
     const cmd = command.toLowerCase();
     const p = usedPrefix !== undefined && usedPrefix !== null ? usedPrefix : '';
 
-    // ── 1. CEK SALDO PROVIDER OWNER (.medansaldo) ──
     if (cmd === 'medansaldo' || cmd === 'ceksaldomedan') {
         if (!isOwner) return m.reply(`❌ Perintah ini hanya untuk Owner.`);
         let prof = await medanpedia.getProfile();
@@ -97,7 +96,6 @@ let handler = async (m, { conn, args, usedPrefix, command, isOwner }) => {
         return replyThumb(conn, m, txt, 'katalog');
     }
 
-    // ── 2. CEK STATUS ORDER SOSMED (.ceksosmed <order_id>) ──
     if (cmd === 'ceksosmed' || cmd === 'smmstatus' || cmd === 'cekordersmm') {
         if (!args[0]) return m.reply(`❌ Masukkan ID Pesanan Sosmed Anda.\nContoh: *${p}${command} 102938*`);
         let orderId = args[0].replace(/[^0-9]/g, '');
@@ -117,7 +115,6 @@ let handler = async (m, { conn, args, usedPrefix, command, isOwner }) => {
         return replyThumb(conn, m, txt, 'katalog');
     }
 
-    // ── 3. UBAH SETTING PROFIT SOSMED OWNER (.setsmmprofit <persen>) ──
     if (cmd === 'setsmmprofit') {
         if (!isOwner) return m.reply(`❌ Perintah ini hanya untuk Owner.`);
         if (!args[0]) return m.reply(`❌ Masukkan margin persentase profit.\nContoh: *${p}${command} 25* (untuk profit 25%)`);
@@ -129,7 +126,6 @@ let handler = async (m, { conn, args, usedPrefix, command, isOwner }) => {
         return m.reply(`✅ Profit Jasa Sosmed berhasil diubah menjadi *+${pct}%* dari harga modal.`);
     }
 
-    // ── 4. CARI JASA SOSMED (.carisosmed <keyword>) ──
     if (cmd === 'carisosmed' || cmd === 'smmcari') {
         if (!args[0]) return m.reply(`❌ Masukkan kata kunci pencarian.\nContoh: *${p}${command} instagram followers*`);
         let query = args.join(' ').toLowerCase();
@@ -160,7 +156,6 @@ let handler = async (m, { conn, args, usedPrefix, command, isOwner }) => {
         return replyThumb(conn, m, txt, 'katalog');
     }
 
-    // ── 5. BELI JASA SOSMED (.belisosmed <id_layanan> <target> <jumlah>) ──
     if (['belisosmed', 'ordersosmed', 'ordersmm', 'belismm', 'smmorder'].includes(cmd)) {
         if (!args[0] || !args[1] || !args[2]) {
             return replyThumb(conn, m, usage({
@@ -212,29 +207,29 @@ let handler = async (m, { conn, args, usedPrefix, command, isOwner }) => {
             return replyThumb(conn, m, txt, 'gagal');
         }
 
-        // Potong saldo user
-        storeDB.updateUserBalance(m.sender, -totalPrice);
+        // Potong saldo user secara atomik (aman dari saldo minus / double-spend).
+        const deducted = storeDB.deductBalance(m.sender, totalPrice);
+        if (!deducted) {
+            return replyThumb(conn, m, `❌ Gagal memotong saldo. Saldo Anda mungkin tidak cukup, coba cek dengan *${p}saldo*.`, 'gagal');
+        }
 
         let invId = generateInvoiceId();
-        storeDB.createTransaction({
-            invoice_id: invId,
-            buyer_jid: m.sender,
-            chat_jid: m.chat,
-            product_id: `smm_${service.id}`,
-            product_name: service.name,
-            qty: qty,
-            price_per_item: totalPrice / qty,
-            total_price: totalPrice,
-            status: 'paid',
-            trx_type: 'smm',
-        });
+        // createTransaction(invoiceId, buyerJid, productId, qty, totalPrice, paymentMethod,
+        //                   uniqueAmount, chatJid, trxType, smmServiceId, smmTarget, smmOrderId)
+        storeDB.createTransaction(
+            invId, m.sender, `smm_${service.id}`, qty, totalPrice, 'saldo',
+            totalPrice, m.chat, 'smm', String(service.id), target, null
+        );
 
         await replyThumb(conn, m, `🔄 Sedang mengirim pesanan *${service.name}* ke server provider...`, platformKey);
 
-        let orderRes = await medanpedia.createOrder(service.id, target, qty);
+        let orderRes = await medanpedia.createOrder({ service: service.id, target, quantity: qty });
 
         if (orderRes.ok) {
-            let orderId = orderRes.data?.id || orderRes.data?.order_id || 'OK';
+            let orderId = orderRes.orderId || orderRes.data?.id || orderRes.data?.order_id || 'OK';
+            storeDB.updateSmmOrderId(invId, String(orderId));
+            storeDB.completeTransaction(invId, [`Order ID Sosmed: ${orderId}`]);
+
             let txtSuccess = `\`PESANAN SOSMED DIPROSES\`\n\n` +
                 `↳ 🧾 *Invoice:* ${copyable(invId)}\n` +
                 `↳ 🛍️ *Layanan:* ${service.name}\n` +
@@ -247,12 +242,11 @@ let handler = async (m, { conn, args, usedPrefix, command, isOwner }) => {
 
             await replyThumb(conn, m, txtSuccess, platformKey);
 
-            // Notif owner & grup
             notifyNewOrder(conn, { invoiceId: invId, buyerJid: m.sender, productName: service.name, total: totalPrice, chatJid: m.chat });
             return;
         } else {
             // Refund saldo jika order provider gagal
-            storeDB.updateUserBalance(m.sender, totalPrice);
+            storeDB.addBalance(m.sender, totalPrice);
             storeDB.updateTransactionStatus(invId, 'cancel');
 
             let txtFail = `\`PESANAN GAGAL - SALDO DI-REFUND\`\n\n` +
@@ -264,7 +258,6 @@ let handler = async (m, { conn, args, usedPrefix, command, isOwner }) => {
         }
     }
 
-    // ── 5. KATALOG JASA SOSIAL MEDIA TERSTRUKTUR (.sosmed / .instagram / .facebook / .tiktok / dll) ──
     let isDirectPlatformCmd = ['instagram', 'ig', 'tiktok', 'tt', 'youtube', 'yt', 'facebook', 'fb', 'telegram', 'tg', 'twitter', 'tw'].includes(cmd);
 
     let res = await getCachedServices();
@@ -285,7 +278,6 @@ let handler = async (m, { conn, args, usedPrefix, command, isOwner }) => {
     // Jika dipanggil via direct command (misal: .facebook 15 atau .fb 15 atau .ig 2)
     let effectiveArgs = isDirectPlatformCmd ? [cmd, ...args] : args;
 
-    // ── TINGKAT 1: JIKA TANPA ARGUMEN → TAMPILKAN 9 PLATFORM UTAMA ──
     if (!effectiveArgs[0]) {
         let txt = `\`KATALOG JASA SOSIAL MEDIA\`\n\n`;
         txt += `Pilihan Platform Sosial Media terlengkap (balas angkanya):\n\n`;
@@ -299,7 +291,6 @@ let handler = async (m, { conn, args, usedPrefix, command, isOwner }) => {
         txt += `Bisa juga ketik *${p}instagram*, *${p}tiktok*, *${p}youtube*, dll.\n\n\n`;
         txt += `_Mau optimasi sosmed yang mana nih kak? Silakan pilih platform di atas ya!_`;
 
-        // Simpan sesi level 1
         conn.smmSession = conn.smmSession || {};
         startFlow(conn, m.sender, 'smmSession');
         conn.smmSession[m.sender] = {
@@ -310,7 +301,6 @@ let handler = async (m, { conn, args, usedPrefix, command, isOwner }) => {
         return replyThumb(conn, m, txt, 'sosmed');
     }
 
-    // ── TINGKAT 2: PILIH PLATFORM (misal: .sosmed facebook, .fb, .sosmed 4) ──
     let userPfInput = effectiveArgs[0];
     let selectedPlatform = findPlatform(userPfInput);
 
@@ -340,7 +330,6 @@ let handler = async (m, { conn, args, usedPrefix, command, isOwner }) => {
         txt += `\n*Cara Pilih:* Balas angka di atas (contoh: *1*) atau ketik *${displayCmd} <nomor_subkategori>*\n\n\n`;
         txt += `_Mau tambah followers, likes, atau views kak? Pilih kategorinya di atas ya!_`;
 
-        // Simpan sesi level 2
         conn.smmSession = conn.smmSession || {};
         startFlow(conn, m.sender, 'smmSession');
         conn.smmSession[m.sender] = {
@@ -396,10 +385,10 @@ let handler = async (m, { conn, args, usedPrefix, command, isOwner }) => {
 // Tangkap balasan angka murni untuk sesi SMM Level 1 & Level 2
 handler.before = async (m, { conn, usedPrefix }) => {
     const text = (m.text || '').trim();
-    if (!/^\d+$/.test(text)) return; // Hanya untuk balasan murni angka
+    if (!/^\d+$/.test(text)) return;
 
     const session = conn.smmSession?.[m.sender];
-    if (!session) return; // Tidak ada sesi aktif → lewati
+    if (!session) return;
 
     if (Date.now() > session.expires) {
         delete conn.smmSession[m.sender];
