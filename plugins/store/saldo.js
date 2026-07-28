@@ -10,6 +10,7 @@ import { rp, generateInvoiceId, usage, copyable } from '../../lib/format.js';
 import { createQRIS } from '../../lib/qris.js';
 import { notifyNewOrder } from '../../lib/store-notify.js';
 import { replyThumb } from '../../lib/ui.js';
+import { displayPrefix } from '../../lib/prefix-util.js';
 import { getRandomIntro, getRandomFooter } from '../../lib/random-msg.js';
 import QRCode from 'qrcode';
 
@@ -154,7 +155,7 @@ handler.before = async (m, { conn, usedPrefix }) => {
     if (!session) return;
 
     const text = (m.text || '').trim().toLowerCase();
-    const prefix = usedPrefix || global.config?.prefix || '.';
+    const prefix = displayPrefix(usedPrefix);
 
     if (Date.now() > session.expires) {
         delete conn.topupSession[m.sender];

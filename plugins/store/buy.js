@@ -11,6 +11,7 @@
 import { storeDB } from '../../lib/store-db.js';
 import { rp, generateInvoiceId, usage, copyable } from '../../lib/format.js';
 import { settlePaid } from '../../lib/settle.js';
+import { displayPrefix } from '../../lib/prefix-util.js';
 import { getRandomIntro, getRandomFooter } from '../../lib/random-msg.js';
 
 const SESSION_TTL = 5 * 60 * 1000; // opsi pembayaran berlaku 5 menit
@@ -72,7 +73,7 @@ handler.before = async (m, { conn, usedPrefix }) => {
     if (!session) return;
 
     const text = (m.text || '').trim().toLowerCase();
-    const prefix = usedPrefix || global.config?.prefix || '.';
+    const prefix = displayPrefix(usedPrefix);
 
     // Sesi kedaluwarsa → bersihkan diam-diam
     if (Date.now() > session.expires) {

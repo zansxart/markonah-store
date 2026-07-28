@@ -4,6 +4,7 @@
  */
 import { storeDB } from '../../lib/store-db.js';
 import { usage, copyable, resolveInvoice } from '../../lib/format.js';
+import { sendStatusCard } from '../../lib/ui.js';
 
 let handler = async (m, { conn, args, usedPrefix, command }) => {
     let inv = resolveInvoice(m, args[0]);
@@ -20,11 +21,18 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
 
     storeDB.updateTransactionStatus(inv, 'cancel');
 
-    let teksAdmin = `\`TRANSAKSI DIBATALKAN\`\n\n↳ *Invoice:* ${copyable(inv)}\n↳ *Status:* Dibatalkan\n\n_Catatan: Stok yang diambil tidak dikembalikan otomatis._`;
-    m.reply(teksAdmin);
+    await m.reply(`✅ Invoice ${copyable(inv)} *Dibatalkan*.\n_Catatan: stok yang terlanjur diambil tidak dikembalikan otomatis._`);
 
-    let teksBuyer = `\`PESANAN DIBATALKAN\`\n\n↳ *Invoice:* ${copyable(inv)}\n\n_Mohon maaf, pesanan Anda telah dibatalkan oleh admin. Silakan hubungi admin untuk informasi lebih lanjut._`;
-    conn.sendMessage(trx.buyer_jid, { text: teksBuyer });
+    // Status dibatalkan → grup + tag pembeli (fallback ke PC pembeli).
+    await sendStatusCard(conn, {
+        title: 'PESANAN DIBATALKAN',
+        invoiceId: inv,
+        buyerJid: trx.buyer_jid,
+        productName: trx.product_name || trx.product_id,
+        amount: trx.total_price,
+        status: 'cancel',
+        chatJid: trx.chat_jid,
+    }, 'gagal');
 };
 handler.help = ['batal'];
 handler.command = ['batal', 'cancel', 'reject'];

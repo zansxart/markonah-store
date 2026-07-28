@@ -9,6 +9,7 @@
  */
 import { storeDB } from '../../lib/store-db.js';
 import { forwardPaymentProof } from '../../lib/store-notify.js';
+import { displayPrefix } from '../../lib/prefix-util.js';
 
 // Plugin ini murni reaktif (tidak dipanggil lewat command), jadi handler-nya
 // no-op; semua logika ada di handler.before.
@@ -35,7 +36,7 @@ handler.before = async (m, { conn, usedPrefix }) => {
     }
     if (!buffer) return;
 
-    const prefix = usedPrefix || global.config?.prefix || '.';
+    const prefix = displayPrefix(usedPrefix);
     const ok = await forwardPaymentProof(conn, buffer, trx, prefix);
 
     if (ok) {

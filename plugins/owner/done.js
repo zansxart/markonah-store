@@ -4,7 +4,7 @@
  */
 import { storeDB } from '../../lib/store-db.js';
 import { rp, usage, copyable, resolveInvoice } from '../../lib/format.js';
-import { replyThumb, sendThumb } from '../../lib/ui.js';
+import { sendThumb, sendStatusCard } from '../../lib/ui.js';
 
 let handler = async (m, { conn, args, usedPrefix, command }) => {
     let inv = resolveInvoice(m, args[0]);
@@ -31,11 +31,13 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
 
     storeDB.completeTransaction(inv, stockDataStr);
 
-    await replyThumb(conn, m, `\`TRANSAKSI SELESAI\`\n\n↳ *Invoice:* ${copyable(inv)}\n↳ *Status:* Selesai`, 'done');
-
     let productName = product ? product.name : trx.product_id;
     let totalPrice = trx.total_price || 0;
 
+    // Konfirmasi singkat ke owner.
+    await m.reply(`✅ Invoice ${copyable(inv)} *Selesai*. Data akun dikirim ke PC pembeli.`);
+
+    // DATA AKUN → cuma PC pembeli (rahasia).
     let teksBuyer = `\`PESANAN SELESAI\`\n\n` +
         `↳ *Invoice:* ${copyable(inv)}\n` +
         `↳ *Produk:* ${productName}\n` +
@@ -43,6 +45,17 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
         `*Data Akun / Produk:*\n${stockDataStr}\n\n\n` +
         `_Segera ganti password (jika akun). Terima kasih telah berbelanja!_`;
     await sendThumb(conn, trx.buyer_jid, teksBuyer, 'done');
+
+    // STATUS SELESAI → grup + tag pembeli (tanpa data akun).
+    await sendStatusCard(conn, {
+        title: 'PESANAN SELESAI',
+        invoiceId: inv,
+        buyerJid: trx.buyer_jid,
+        productName,
+        amount: totalPrice,
+        status: 'done',
+        chatJid: trx.chat_jid,
+    }, 'done');
 };
 handler.help = ['done'];
 handler.command = ['done', 'selesai', 'complete'];

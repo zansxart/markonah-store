@@ -13,7 +13,7 @@
 import { storeDB } from '../../lib/store-db.js';
 import { settlePaid } from '../../lib/settle.js';
 import { rp, copyable, resolveInvoice } from '../../lib/format.js';
-import { sendThumb } from '../../lib/ui.js';
+import { sendThumb, sendStatusCard } from '../../lib/ui.js';
 
 let handler = async (m, { conn, args, text, usedPrefix, command, isOwner }) => {
     if (!isOwner) return m.reply(`❌ Perintah ini hanya untuk Owner.`);
@@ -45,6 +45,7 @@ let handler = async (m, { conn, args, text, usedPrefix, command, isOwner }) => {
 
         storeDB.completeTransaction(invoiceId, [isiPesanan]);
 
+        // DATA AKUN → cuma PC pembeli (rahasia).
         let teksBuyer = `\`PESANAN SELESAI\`\n\n`;
         teksBuyer += `↳ *Invoice:* ${copyable(invoiceId)}\n`;
         teksBuyer += `↳ *Produk:* ${trx.product_name || trx.product_id}\n`;
@@ -53,6 +54,18 @@ let handler = async (m, { conn, args, text, usedPrefix, command, isOwner }) => {
         teksBuyer += `_Segera ganti password (jika akun). Terima kasih telah berbelanja!_`;
 
         await sendThumb(conn, trx.buyer_jid, teksBuyer, 'done').catch(() => {});
+
+        // STATUS SELESAI → grup + tag pembeli (tanpa data akun).
+        await sendStatusCard(conn, {
+            title: 'PESANAN SELESAI',
+            invoiceId,
+            buyerJid: trx.buyer_jid,
+            productName: trx.product_name || trx.product_id,
+            amount: trx.total_price,
+            status: 'done',
+            chatJid: trx.chat_jid,
+        }, 'done').catch(() => {});
+
         return m.reply(`✅ Pesanan ${invoiceId} selesai & sudah dikirim ke PC pembeli (@${trx.buyer_jid.split('@')[0]}).`, null, { mentions: [trx.buyer_jid] });
     }
 
@@ -67,6 +80,17 @@ let handler = async (m, { conn, args, text, usedPrefix, command, isOwner }) => {
     if (!res.ok) {
         return m.reply(`❌ Gagal memproses transaksi: ${res.reason}`);
     }
+
+    // Kirim status card dengan thumbnail diterima.jpg
+    await sendStatusCard(conn, {
+        title: 'PEMBAYARAN DITERIMA',
+        invoiceId,
+        buyerJid: trx.buyer_jid,
+        productName: trx.product_name || trx.product_id,
+        amount: trx.total_price,
+        status: res.status,
+        chatJid: trx.chat_jid,
+    }, 'diterima').catch(() => {});
 
     if (res.status === 'done') {
         if (trx.trx_type === 'topup') {

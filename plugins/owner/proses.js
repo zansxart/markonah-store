@@ -4,7 +4,7 @@
  */
 import { storeDB } from '../../lib/store-db.js';
 import { usage, copyable, resolveInvoice } from '../../lib/format.js';
-import { replyThumb, sendThumb } from '../../lib/ui.js';
+import { sendStatusCard } from '../../lib/ui.js';
 
 let handler = async (m, { conn, args, usedPrefix, command }) => {
     let inv = resolveInvoice(m, args[0]);
@@ -21,19 +21,19 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
 
     storeDB.updateTransactionStatus(inv, 'process');
 
-    await replyThumb(conn, m, `\`STATUS DIPERBARUI\`\n\n↳ *Invoice:* ${copyable(inv)}\n↳ *Status:* Diproses`, 'proses');
+    // Konfirmasi singkat ke owner.
+    await m.reply(`✅ Invoice ${copyable(inv)} ditandai *Diproses*.`);
 
-    let teksBuyer = `\`PESANAN DIPROSES\`\n\n` +
-        `↳ *Invoice:* ${copyable(inv)}\n` +
-        `↳ *Pembeli:* @${trx.buyer_jid.split('@')[0]}\n` +
-        `↳ *Produk:* ${trx.product_name || trx.product_id}\n\n\n` +
-        `_Pesanan Anda sedang diproses oleh admin. Mohon ditunggu ya kak!_`;
-
-    // Tag buyer di chat asal transaksi (grup), plus PC langsung.
-    if (trx.chat_jid && trx.chat_jid.endsWith('@g.us')) {
-        await sendThumb(conn, trx.chat_jid, teksBuyer, 'proses', { mentions: [trx.buyer_jid] }).catch(() => {});
-    }
-    await sendThumb(conn, trx.buyer_jid, teksBuyer, 'proses', { mentions: [trx.buyer_jid] }).catch(() => {});
+    // Kartu status ke grup asal + tag pembeli (fallback ke PC pembeli).
+    await sendStatusCard(conn, {
+        title: 'PESANAN DIPROSES',
+        invoiceId: inv,
+        buyerJid: trx.buyer_jid,
+        productName: trx.product_name || trx.product_id,
+        amount: trx.total_price,
+        status: 'process',
+        chatJid: trx.chat_jid,
+    }, 'proses');
 };
 handler.help = ['proses'];
 handler.command = ['proses', 'process'];

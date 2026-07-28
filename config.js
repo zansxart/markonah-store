@@ -73,6 +73,7 @@ global.thumb = {
     done:     './storage/assets/done.jpg',       // pesanan selesai / terkirim
     topup:    './storage/assets/topup.jpg',      // topup saldo berhasil
     gagal:    './storage/assets/gagal.jpg',      // pembayaran/proses gagal
+    diterima: './storage/assets/diterima.jpg',   // pembayaran diterima / dikonfirmasi
 };
 
 global.url = {
