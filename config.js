@@ -10,20 +10,12 @@ import * as functions from './core/services/system/function.js';
 
 global.Func = functions;
 
-// ═══════════════════════════════════════
-// │  OWNER & MODERATOR
-// ═══════════════════════════════════════
-
 global.owner = '6285802569316';
 
 global.mods = [
     [global.owner, 'zansxart', 'Real Owner'],
     ['6285802569316', 'zansxart', 'Real Owner']
 ];
-
-// ═══════════════════════════════════════
-// │  BOT CONFIGURATION
-// ═══════════════════════════════════════
 
 global.opts = global.opts || {};
 
@@ -38,7 +30,7 @@ global.setting = {
 global.config = {
     sessions: 'sessions',
     useQR: false,
-    prefix: '.', // default prefix, bisa diubah: '.', '!', '#', atau 'noprefix'
+    prefix: '.',
 };
 
 global.info = {
@@ -52,29 +44,22 @@ global.info = {
     jid: '@s.whatsapp.net',
 };
 
-// ═══════════════════════════════════════
-// │  MEDIA & URLs
-// ═══════════════════════════════════════
-
 global.media = {
     logo: './storage/assets/logo.jpg',
     thumbnail: './storage/assets/thumbnail.jpg',
 };
 
-// Thumbnail per-aksi. Tinggal taruh file dengan nama sesuai di storage/assets/.
-// Kalau file-nya belum ada, otomatis fallback ke global.media.thumbnail,
-// jadi aman walau belum semua gambar dibuat.
 global.thumb = {
-    menu:      './storage/assets/menu.jpg',       // tampilan menu utama
-    katalog:   './storage/assets/katalog.jpg',    // daftar kategori & produk
-    invoice:   './storage/assets/invoice.jpg',    // tagihan / QRIS pembayaran
-    wait:      './storage/assets/wait.jpg',       // "mohon ditunggu / diproses"
-    proses:    './storage/assets/proses.jpg',     // pesanan sedang diproses
-    done:      './storage/assets/done.jpg',       // pesanan selesai / terkirim
-    topup:     './storage/assets/topup.jpg',      // topup saldo berhasil
-    gagal:     './storage/assets/gagal.jpg',      // pembayaran/proses gagal
-    diterima:  './storage/assets/diterima.jpg',   // pembayaran diterima / dikonfirmasi
-    sosmed:    './storage/assets/sosmed.jpg',     // katalog utama jasa sosmed
+    menu:      './storage/assets/menu.jpg',
+    katalog:   './storage/assets/katalog.jpg',
+    invoice:   './storage/assets/invoice.jpg',
+    wait:      './storage/assets/wait.jpg',
+    proses:    './storage/assets/proses.jpg',
+    done:      './storage/assets/done.jpg',
+    topup:     './storage/assets/topup.jpg',
+    gagal:     './storage/assets/gagal.jpg',
+    diterima:  './storage/assets/diterima.jpg',
+    sosmed:    './storage/assets/sosmed.jpg',
     instagram: './storage/assets/instagram.jpg',
     tiktok:    './storage/assets/tiktok.jpg',
     youtube:   './storage/assets/youtube.jpg',
@@ -91,42 +76,24 @@ global.url = {
     sgc: 'https://chat.whatsapp.com/FLq42dyLTlw7sH9OGMDoeI',
 };
 
-// ═══════════════════════════════════════
-// │  PAYMENT (QRIS DABIS)
-// ═══════════════════════════════════════
-
 global.payment = {
     qris: '00020101021126610014COM.GO-JEK.WWW01189360091438534824440210G8534824440303UMI51440014ID.CO.QRIS.WWW0215ID10254585814570303UMI5204597053033605802ID5908zansxart6006BREBES61055227562070703A0163043BAB',
     dana: '085802569316',
 };
 
-// ═══════════════════════════════════════
-// │  STORE SETTINGS
-// ═══════════════════════════════════════
-
 global.store = {
-    autoPayment: false,     // Payment gateway otomatis (belum jadi → user lihat "dalam pengembangan")
-    paymentTimeout: 300,    // Timeout pembayaran dalam detik (5 menit)
-    notifGroup: '',         // Cadangan JID grup notif. Biarkan kosong: notif otomatis
-                            // dikirim ke grup tempat transaksi dibuat. Isi hanya kalau
-                            // mau SEMUA notif dipusatkan ke satu grup tertentu.
-    welcomeMsg: true,       // Kirim pesan selamat datang ke pembeli baru
+    autoPayment: false,
+    paymentTimeout: 300,
+    notifGroup: '',
+    welcomeMsg: true,
 };
-
-// ═══════════════════════════════════════
-// │  MEDANPEDIA SMM API CONFIGURATION
-// ═══════════════════════════════════════
 
 global.medanpedia = {
-    apiId: '45811',              // Masukkan API ID dari akun Medanpedia Anda
-    apiKey: '9tgelv-sdi3wu-6cum5y-dmri4c-qkfzib',             // Masukkan API Key dari akun Medanpedia Anda
-    profitPercent: 30,      // Margin keuntungan % (contoh: 20 = profit +20% dari harga dasar)
-    profitNominal: 5000,       // Margin keuntungan tetap Rp (opsional, misal: 2000 = +Rp 2.000)
+    apiId: '45811',
+    apiKey: '9tgelv-sdi3wu-6cum5y-dmri4c-qkfzib',
+    profitPercent: 30,
+    profitNominal: 5000,
 };
-
-// ═══════════════════════════════════════
-// │  GLOBAL HELPERS
-// ═══════════════════════════════════════
 
 global.fetchBuffer = async (url, options) => {
     try {
@@ -145,10 +112,6 @@ global.fetchBuffer = async (url, options) => {
         return null;
     }
 };
-
-// ═══════════════════════════════════════
-// │  HOT RELOAD
-// ═══════════════════════════════════════
 
 const file = fileURLToPath(import.meta.url);
 watchFile(file, () => {

@@ -21,7 +21,7 @@ export function renderCategoryList(categories, prefix = '.') {
     categories.forEach((cat, i) => {
         text += `${i + 1}. 🛍️ *${cat}*\n`;
     });
-    text += `\n_Balas angka (contoh: 1) atau ketik *${p}katalog <kategori>*\n\n`;
+    text += `\nBalas angka (contoh: 1) atau ketik *${p}katalog <kategori>*\n\n`;
     text += `🚀 *Jasa Sosmed?* Ketik *${p}sosmed* untuk katalog followers & likes.\n\n\n`;
     text += `${footer}`;
     return text;
