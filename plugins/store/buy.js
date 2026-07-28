@@ -12,6 +12,7 @@ import { storeDB } from '../../lib/store-db.js';
 import { rp, generateInvoiceId, usage, copyable } from '../../lib/format.js';
 import { settlePaid } from '../../lib/settle.js';
 import { displayPrefix } from '../../lib/prefix-util.js';
+import { replyThumb } from '../../lib/ui.js';
 import { getRandomIntro, getRandomFooter } from '../../lib/random-msg.js';
 
 const SESSION_TTL = 5 * 60 * 1000; // opsi pembayaran berlaku 5 menit

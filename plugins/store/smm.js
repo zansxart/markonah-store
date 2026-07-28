@@ -176,9 +176,16 @@ let handler = async (m, { conn, args, usedPrefix, command, isOwner }) => {
             txt += `${i + 1}. ${pf.emoji} *${pf.name}* _(${count} Layanan)_\n`;
         });
 
-        txt += `\n*Cara Akses:* Ketik *${p}${command} <nomor_atau_nama_platform>*\n`;
+        txt += `\n*Cara Akses:* Balas angka di atas (contoh: *1*) atau ketik *${p}${command} <nomor_atau_nama_platform>*\n`;
         txt += `Bisa juga ketik *${p}instagram*, *${p}tiktok*, *${p}youtube*, dll.\n\n\n`;
         txt += `_Mau optimasi sosmed yang mana nih kak? Silakan pilih platform di atas ya!_`;
+
+        // Simpan sesi level 1
+        conn.smmSession = conn.smmSession || {};
+        conn.smmSession[m.sender] = {
+            level: 1,
+            expires: Date.now() + 5 * 60 * 1000,
+        };
 
         return m.reply(txt);
     }
@@ -209,8 +216,17 @@ let handler = async (m, { conn, args, usedPrefix, command, isOwner }) => {
             txt += `${idx + 1}. 🏷️ *${cat}* _(${catCount} Layanan)_\n`;
         });
 
-        txt += `\n*Cara Pilih:* Ketik *${displayCmd} <nomor_subkategori>*\n\n\n`;
+        txt += `\n*Cara Pilih:* Balas angka di atas (contoh: *1*) atau ketik *${displayCmd} <nomor_subkategori>*\n\n\n`;
         txt += `_Mau tambah followers, likes, atau views kak? Pilih kategorinya di atas ya!_`;
+
+        // Simpan sesi level 2
+        conn.smmSession = conn.smmSession || {};
+        conn.smmSession[m.sender] = {
+            level: 2,
+            platform: selectedPlatform,
+            subCategories,
+            expires: Date.now() + 5 * 60 * 1000,
+        };
 
         return m.reply(txt);
     }
@@ -232,6 +248,9 @@ let handler = async (m, { conn, args, usedPrefix, command, isOwner }) => {
         return m.reply(`❌ Sub-kategori "${effectiveArgs.slice(1).join(' ')}" tidak ditemukan.\nKetik *${displayCmd}* untuk melihat daftar sub-kategori.`);
     }
 
+    // Hapus sesi SMM begitu membuka detail layanan
+    if (conn.smmSession?.[m.sender]) delete conn.smmSession[m.sender];
+
     let targetServices = pfServices.filter(s => s.category === selectedSubCat);
 
     let txt = `\`${selectedSubCat.toUpperCase()}\`\n\n`;
@@ -249,8 +268,44 @@ let handler = async (m, { conn, args, usedPrefix, command, isOwner }) => {
     txt += `_Siap melesatkan sosmed kamu kak! Langsung ketik format pemesanan di atas ya!_`;
 
     return m.reply(txt);
+};
 
-    return m.reply(txt);
+// Tangkap balasan angka murni untuk sesi SMM Level 1 & Level 2
+handler.before = async (m, { conn, usedPrefix }) => {
+    const text = (m.text || '').trim();
+    if (!/^\d+$/.test(text)) return; // Hanya untuk balasan murni angka
+
+    const session = conn.smmSession?.[m.sender];
+    if (!session) return; // Tidak ada sesi aktif → lewati
+
+    if (Date.now() > session.expires) {
+        delete conn.smmSession[m.sender];
+        return;
+    }
+
+    const num = parseInt(text, 10);
+
+    // LEVEL 1: User membalas angka platform (misal 1 untuk Instagram, 4 untuk Facebook)
+    if (session.level === 1) {
+        let pf = PLATFORMS[num - 1];
+        if (!pf) {
+            await m.reply(`❌ Nomor platform tidak valid. Silakan pilih 1-${PLATFORMS.length}.`);
+            return true;
+        }
+        delete conn.smmSession[m.sender];
+        return handler(m, { conn, args: [pf.key], usedPrefix, command: 'sosmed' });
+    }
+
+    // LEVEL 2: User membalas angka subkategori (misal 1 untuk Facebook Page Likes, 2 untuk Post Likes)
+    if (session.level === 2 && Array.isArray(session.subCategories)) {
+        let subCat = session.subCategories[num - 1];
+        if (!subCat) {
+            await m.reply(`❌ Nomor sub-kategori tidak valid. Silakan pilih 1-${session.subCategories.length}.`);
+            return true;
+        }
+        delete conn.smmSession[m.sender];
+        return handler(m, { conn, args: [session.platform.key, String(num)], usedPrefix, command: 'sosmed' });
+    }
 };
 
 handler.help = [
