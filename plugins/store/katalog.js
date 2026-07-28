@@ -4,6 +4,8 @@
  */
 import { storeDB } from '../../lib/store-db.js';
 import { rp } from '../../lib/format.js';
+import { replyThumb } from '../../lib/ui.js';
+import { getRandomIntro, getRandomFooter } from '../../lib/random-msg.js';
 
 const SESSION_TTL = 3 * 60 * 1000; // 3 menit
 
@@ -11,12 +13,16 @@ const SESSION_TTL = 3 * 60 * 1000; // 3 menit
  * Render Layar 1: daftar kategori bernomor.
  */
 export function renderCategoryList(categories, prefix = '.') {
-    const p = prefix || '.';
-    let text = `🛍️ *KATALOG STORE*\nPilih kategori (balas angkanya):\n\n`;
+    const p = prefix !== undefined && prefix !== null ? prefix : '.';
+    let intro = getRandomIntro('katalog');
+    let footer = getRandomFooter('katalog');
+    let text = `\`KATALOG PRODUK DIGITAL\`\n${intro}\n\n`;
     categories.forEach((cat, i) => {
-        text += `${i + 1}. ${cat}\n`;
+        text += `${i + 1}. 🛍️ *${cat}*\n`;
     });
-    text += `\n_Balas angka, mis. 2 — berlaku 3 menit._\n_Atau ketik ${p}katalog <kategori>._`;
+    text += `\n_Balas angka (contoh: 1) atau ketik *${p}katalog <kategori>*\n\n`;
+    text += `🚀 *Jasa Sosmed?* Ketik *${p}sosmed* untuk katalog followers & likes.\n\n\n`;
+    text += `${footer}`;
     return text;
 }
 
@@ -24,22 +30,26 @@ export function renderCategoryList(categories, prefix = '.') {
  * Render Layar 2: produk dalam satu kategori.
  */
 export function renderCategoryProducts(category, products, prefix = '.') {
-    const p = prefix || '.';
+    const p = prefix !== undefined && prefix !== null ? prefix : '.';
     if (!products || products.length === 0) {
-        return `❌ Tidak ada produk di kategori *${category}*.`;
+        return `Belum ada produk nih di kategori *${category}*. Nanti dikabarin lagi ya kak!`;
     }
-    let text = `📁 *${String(category).toUpperCase()}*\n\n`;
+    let footer = getRandomFooter('katalog');
+    let text = `\`KATALOG ${String(category).toUpperCase()}\`\n\n`;
     for (const prod of products) {
-        const stockCount = storeDB.getStockCount(prod.id);
-        const stockBadge = stockCount > 0 ? `✅ READY (${stockCount})` : `❌ KOSONG`;
-        text += `╭── 📦 *${prod.name}*\n`;
-        text += `│ 🆔 Kode : \`${prod.id}\`\n`;
-        text += `│ 💰 Harga : *Rp ${rp(prod.price)}*\n`;
-        text += `│ 📊 Stok : ${stockBadge}\n`;
-        if (prod.description) text += `│ 📝 Ket : _${prod.description}_\n`;
-        text += `╰───────────────────\n\n`;
+        const isManual = prod.type === 'manual';
+        const manualStock = prod.manual_stock || 0;
+        const stockCount = isManual ? manualStock : storeDB.getStockCount(prod.id);
+        const stockBadge = stockCount > 0 ? `Ready (${stockCount})` : `Kosong`;
+        
+        text += `↳ 🏷️ *${prod.name}*\n`;
+        text += `  Kode: *${prod.id}*  |  Harga: *Rp ${rp(prod.price)}*\n`;
+        text += `  Stok: *${stockBadge}*\n`;
+        if (prod.description) text += `  _Ket: ${prod.description}_\n`;
+        text += `\n`;
     }
-    text += `💡 *Cara Beli:* Ketik \`${p}buy <kode>\`\n_Contoh:_ \`${p}buy ${products[0].id}\``;
+    text += `*Cara Pembelian:* Ketik *${p}buy <kode>*\nContoh: *${p}buy ${products[0].id}*\n\n\n`;
+    text += `${footer}`;
     return text;
 }
 
@@ -56,11 +66,11 @@ export function resolveCategoryByNumber(session, numStr) {
 
 function showCategoryProducts(m, conn, category, usedPrefix) {
     const products = storeDB.getProductsByCategory(category);
-    return m.reply(renderCategoryProducts(category, products, usedPrefix));
+    return replyThumb(conn, m, renderCategoryProducts(category, products, usedPrefix), 'katalog');
 }
 
 let handler = async (m, { conn, args, usedPrefix }) => {
-    const p = usedPrefix || '.';
+    const p = usedPrefix !== undefined && usedPrefix !== null ? usedPrefix : '.';
 
     // Ada argumen → langsung ke produk (dukung nama kategori atau angka bila ada sesi)
     if (args[0]) {
@@ -89,7 +99,7 @@ let handler = async (m, { conn, args, usedPrefix }) => {
         expires: Date.now() + SESSION_TTL,
     };
 
-    return m.reply(renderCategoryList(categories, usedPrefix));
+    return replyThumb(conn, m, renderCategoryList(categories, usedPrefix), 'katalog');
 };
 
 // Tangkap balasan angka setelah user buka katalog (sesi aktif & belum expired).

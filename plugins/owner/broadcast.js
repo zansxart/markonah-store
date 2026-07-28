@@ -18,7 +18,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
     
     if (buyers.length === 0) return m.reply('Belum ada pembeli!');
     
-    let teksBc = `┏━━━〔 📢 BROADCAST STORE 〕━⬣\n┃\n┃ ${text.split('\n').join('\n┃ ')}\n┃\n┗━━━━━━━━━━━━━━━━⬣`;
+    let teksBc = `\`ANNOUNCEMENT STORE\`\n\n${text}\n\n\n_Pesan resmi dari Markonah Store_`;
     
     let count = 0;
     for (let jid of buyers) {
@@ -28,7 +28,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
         } catch (e) {}
     }
     
-    m.reply(`┏━━━〔 ✅ BROADCAST SUKSES 〕━⬣\n┃ ✦ Pesan dikirim ke ${count} pengguna\n┗━━━━━━━━━━━━━━━━⬣`);
+    m.reply(`\`BROADCAST SUKSES\`\n\n↳ *Pesan dikirim ke:* ${count} pengguna`);
 };
 handler.help = ['broadcast'];
 handler.command = ['broadcast', 'bc'];

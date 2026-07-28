@@ -26,14 +26,17 @@ let handler = async (m, { conn, args, text, usedPrefix, command }) => {
     storeDB.completeTransaction(inv, dataAkun);
     let product = storeDB.getProduct(trx.product_id);
 
-    m.reply(`┏━━━〔 ✅ DATA DIKIRIM 〕━⬣\n┃ ✦ Invoice : ${copyable(inv)}\n┃ ✦ Status  : Selesai\n┗━━━━━━━━━━━━━━━━⬣`);
+    m.reply(`\`DATA DIKIRIM\`\n\n↳ *Invoice:* ${copyable(inv)}\n↳ *Status:* Selesai`);
 
     let productName = product ? product.name : (trx.product_name || trx.product_id);
     let totalPrice = trx.total_price || 0;
 
-    let dataStr = dataAkun.split('\n').join('\n┃ ');
-
-    let teksBuyer = `┏━━━〔 📦 PESANAN SELESAI 〕━⬣\n┃\n┃ 🧾 Invoice : ${copyable(inv)}\n┃ 📦 Produk  : ${productName}\n┃ 💰 Total   : Rp ${rp(totalPrice)}\n┃\n┃ 📋 Data Akun:\n┃ ${dataStr}\n┃\n┃ ⚠️ Segera ganti password!\n┗━━━━━━━━━━━━━━━━⬣`;
+    let teksBuyer = `\`PESANAN SELESAI\`\n\n` +
+        `↳ *Invoice:* ${copyable(inv)}\n` +
+        `↳ *Produk:* ${productName}\n` +
+        `↳ *Total Harga:* Rp ${rp(totalPrice)}\n\n` +
+        `*Data Akun / Pesanan:*\n${dataAkun}\n\n\n` +
+        `_Segera ganti password (jika akun). Terima kasih telah berbelanja!_`;
     conn.sendMessage(trx.buyer_jid, { text: teksBuyer });
 };
 handler.help = ['kirim'];

@@ -1,28 +1,34 @@
 /**
  * @credit zansxart
  * Instagram: https://instagram.com/zansxart
+ *
+ * Alur beli produk:
+ * 1. .buy <id> [qty]  → bot tampilkan opsi pembayaran (balas angka)
+ * 2. [1] Manual   → potong saldo user → owner diminta siapkan produk
+ *                   (owner: .proses → kabari buyer, .acc <inv> <isi> → kirim ke buyer)
+ * 3. [2] Otomatis → payment gateway (masih dalam pengembangan)
  */
 import { storeDB } from '../../lib/store-db.js';
 import { rp, generateInvoiceId, usage, copyable } from '../../lib/format.js';
-import { createQRIS } from '../../lib/qris.js';
 import { settlePaid } from '../../lib/settle.js';
-import { notifyNewOrder } from '../../lib/store-notify.js';
-import QRCode from 'qrcode';
+import { getRandomIntro, getRandomFooter } from '../../lib/random-msg.js';
 
-/**
- * Cari nominal unik (harga + kode receh 1-99) yang belum dipakai transaksi
- * lain. Termasuk yang baru cancel: notif pembayaran QRIS bisa telat berjam-
- * jam (lintas e-wallet lewat switching), jadi selama window telat masih
- * aktif nominalnya tidak boleh kepakai ulang — kalau tidak, pembayaran telat
- * bakal nyocok ke invoice yang salah.
- */
-function generateUniqueAmount(baseTotal) {
-    for (let receh = 1; receh <= 99; receh++) {
-        const candidate = baseTotal + receh;
-        if (!storeDB.isAmountInUse(candidate)) return candidate;
-    }
-    // Fallback (99 pending nominal sama secara bersamaan — praktis mustahil).
-    return baseTotal + Math.floor(Math.random() * 99) + 1;
+const SESSION_TTL = 5 * 60 * 1000; // opsi pembayaran berlaku 5 menit
+
+function renderPaymentOptions(product, qty, subtotal, balance) {
+    let intro = getRandomIntro('buy');
+    let footer = getRandomFooter('buy');
+    return `\`KONFIRMASI PESANAN PRODUK\`\n\n${intro}\n\n` +
+    `↳ 📦 *Produk:* ${product.name}\n` +
+    `↳ 🔢 *Jumlah:* ${qty}\n` +
+    `↳ 💰 *Total Harga:* Rp ${rp(subtotal)}\n` +
+    `↳ 💳 *Saldo Anda:* Rp ${rp(balance)}\n\n` +
+    `Silakan pilih metode pembayaran (balas angkanya):\n\n` +
+    `1. *Bayar Manual (Saldo)*\n` +
+    `   _Diproses oleh admin saat online._\n\n` +
+    `2. *Bayar Otomatis (Payment Gateway)*\n` +
+    `   _On 24 jam, pesanan diproses otomatis._\n\n\n` +
+    `${footer}`;
 }
 
 let handler = async (m, { conn, args, usedPrefix, command }) => {
@@ -38,102 +44,118 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
     let qty = args[1] ? parseInt(args[1]) : 1;
 
     if (isNaN(qty) || qty < 1) return m.reply(`❌ Qty harus berupa angka minimal 1. Contoh: ${(usedPrefix || '.')}${command} ${productId} 2`);
-    
+
     let product = storeDB.getProduct(productId);
     if (!product) return m.reply(`❌ Produk dengan ID ${productId} tidak ditemukan.`);
-    
-    let stock = storeDB.getStockCount(productId);
+
+    // Cek stok sesuai tipe: manual pakai counter manual_stock, stock pakai tabel stock.
+    let stock = product.type === 'manual' ? (product.manual_stock || 0) : storeDB.getStockCount(productId);
     if (stock < qty) return m.reply(`❌ Stok tidak cukup. Sisa stok: ${stock}`);
-    
+
     let subtotal = product.price * qty;
-    let invoiceId = generateInvoiceId();
-    let qrisString = global.payment?.qris || '';
+    let user = storeDB.getOrCreateUser(m.sender, m.pushName || 'User');
 
-    if (!qrisString) return m.reply(`❌ QRIS belum diatur oleh Owner. Ketik ${usedPrefix}setqris untuk mengatur.`);
-
-    // Nominal unik (harga + kode receh) → dipakai untuk QRIS, tagihan, & matcher webhook.
-    let total = generateUniqueAmount(subtotal);
-    let recehNote = total - subtotal;
-
-    // chat_jid: chat asal transaksi, dipakai buat balikin notif ke grup yang sama.
-    storeDB.createTransaction(invoiceId, m.sender, productId, qty, total, 'qris', total, m.chat);
-    let qrisPayload = createQRIS(qrisString, total);
-    let qrisBuffer = await QRCode.toBuffer(qrisPayload);
-
-    let text = `┏━━━〔 💳 PEMBAYARAN 〕━⬣
-┃
-┃ 📦 Produk  : ${product.name}
-┃ 🔢 Qty     : ${qty}
-┃ 💰 Total   : Rp ${rp(total)}
-┃ 🧾 Invoice : ${copyable(invoiceId)}
-┃
-┃ ⚠️ Bayar *TEPAT* Rp ${rp(total)}
-┃    (termasuk kode unik ${recehNote})
-┃    biar terverifikasi otomatis.
-┃
-┃ ⏰ Batas Bayar: 5 Menit
-┃
-┃ 📱 Scan QRIS di atas untuk membayar
-┃
-┗━━━━━━━━━━━━━━━━⬣`;
-
-    await conn.sendMessage(m.chat, {
-        image: qrisBuffer,
-        caption: text
-    }, { quoted: m });
-    
-    conn.storeTrx = conn.storeTrx || {};
-    conn.storeTrx[m.sender] = {
-        invoiceId,
-        timer: setTimeout(() => {
-            let trx = storeDB.getTransaction(invoiceId);
-            if (trx && trx.status === 'pending') {
-                storeDB.updateTransactionStatus(invoiceId, 'cancel');
-                conn.sendMessage(m.chat, { text: `❌ Transaksi ${copyable(invoiceId)} dibatalkan karena melebihi batas waktu (5 Menit).` });
-            }
-            delete conn.storeTrx[m.sender];
-        }, 5 * 60 * 1000)
+    // Simpan sesi opsi pembayaran (satu sesi aktif per user)
+    conn.buySession = conn.buySession || {};
+    conn.buySession[m.sender] = {
+        productId,
+        qty,
+        subtotal,
+        expires: Date.now() + SESSION_TTL,
     };
-    
-    notifyNewOrder(conn, {
-        invoiceId,
-        buyerJid: m.sender,
-        productName: product.name,
-        total,
-        chatJid: m.chat,
-    });
+
+    return m.reply(renderPaymentOptions(product, qty, subtotal, user.balance));
 };
 
-handler.before = async (m, { conn, isOwner }) => {
-    if (!isOwner) return;
-    
-    let text = m.text?.toLowerCase();
-    if (text !== 'confirm' && text !== 'acc') return;
-    
-    if (!m.quoted) return;
-    
-    let quotedText = m.quoted.text || m.quoted.caption || '';
-    let match = quotedText.match(/Invoice\s*:\s*(INV-\w+)/i);
-    if (!match) return;
-    
-    let invoiceId = match[1];
-    let trx = storeDB.getTransaction(invoiceId);
+handler.before = async (m, { conn, usedPrefix }) => {
+    const session = conn.buySession?.[m.sender];
+    if (!session) return;
 
-    if (!trx) return m.reply(`❌ Transaksi tidak ditemukan.`);
-    if (trx.status !== 'pending' && trx.status !== 'process') return m.reply(`❌ Transaksi sudah selesai atau dibatalkan.`);
+    const text = (m.text || '').trim().toLowerCase();
+    const prefix = usedPrefix || global.config?.prefix || '.';
 
-    let res = await settlePaid(conn, invoiceId, { source: 'manual' });
-
-    if (!res.ok) {
-        if (res.reason === 'already_settled') return m.reply(`❌ Transaksi sudah selesai atau dibatalkan.`);
-        return m.reply(`❌ Transaksi tidak ditemukan.`);
+    // Sesi kedaluwarsa → bersihkan diam-diam
+    if (Date.now() > session.expires) {
+        delete conn.buySession[m.sender];
+        return;
     }
-    if (res.status === 'done') {
-        return m.reply(`✅ Pesanan selesai dan stok dikirim ke pembeli.`);
+
+    if (text === 'batal' || text === 'cancel') {
+        delete conn.buySession[m.sender];
+        await m.reply(`✅ Pesanan dibatalkan.`);
+        return true;
     }
-    const prefix = global.config?.prefix || '.';
-    await m.reply(`✅ Pembayaran dikonfirmasi. Status: Process.\nStok kurang atau autoSend mati. Silakan kirim stok manual dengan command di bawah (long-press → Copy):`);
-    return conn.sendMessage(m.chat, { text: copyable(`${prefix}done ${invoiceId}`) }, { quoted: m });
+
+    // Hanya reaksi ke pilihan 1/2 (atau kata kuncinya)
+    const isManual = text === '1' || text === 'manual';
+    const isAuto = text === '2' || text === 'otomatis';
+    if (!isManual && !isAuto) return;
+
+    // ── OPSI 2: OTOMATIS (PG BELUM JADI) ──
+    if (isAuto) {
+        await m.reply(`\`PAYMENT OTOMATIS\`\n\nMohon maaf, pembayaran otomatis belum tersedia saat ini.\nSilakan balas *1* untuk bayar manual via saldo.`);
+        return true; // sesi tetap hidup, user bisa pilih 1
+    }
+
+    // ── OPSI 1: MANUAL (POTONG SALDO) ──
+    delete conn.buySession[m.sender];
+
+    const product = storeDB.getProduct(session.productId);
+    if (!product) {
+        await m.reply(`❌ Produk sudah tidak tersedia. Silakan cek ${prefix}katalog.`);
+        return true;
+    }
+
+    // Pastikan stok masih cukup (bisa keburu habis saat user milih opsi).
+    const stockNow = product.type === 'manual' ? (product.manual_stock || 0) : storeDB.getStockCount(session.productId);
+    if (stockNow < session.qty) {
+        await m.reply(`❌ Yah, stok keburu habis. Sisa stok: ${stockNow}. Pesanan dibatalkan.`);
+        return true;
+    }
+
+    const user = storeDB.getOrCreateUser(m.sender, m.pushName || 'User');
+
+    // Saldo kurang → arahkan topup
+    if (user.balance < session.subtotal) {
+        const kurang = session.subtotal - user.balance;
+        await m.reply(
+            `\`SALDO TIDAK CUKUP\`\n\n` +
+            `↳ *Total Pesanan:* Rp ${rp(session.subtotal)}\n` +
+            `↳ *Saldo Anda:* Rp ${rp(user.balance)}\n` +
+            `↳ *Kekurangan:* Rp ${rp(kurang)}\n\n` +
+            `Isi saldo dulu dengan ketik:\n` +
+            `${copyable(`${prefix}topup ${kurang}`)}\n\n` +
+            `Setelah saldo terisi, ulangi:\n` +
+            `${copyable(`${prefix}buy ${session.productId}${session.qty > 1 ? ' ' + session.qty : ''}`)}\n\n\n` +
+            `_Silakan melakukan topup terlebih dahulu ya!_`
+        );
+        return true;
+    }
+
+    const deducted = storeDB.deductBalance(m.sender, session.subtotal);
+    if (!deducted) {
+        await m.reply(`❌ Gagal memotong saldo. Silakan coba lagi.`);
+        return true;
+    }
+
+    // Produk manual: kurangi counter stok secara atomik. Kalau keburu habis
+    // (race dengan order lain), balikin saldo & batalkan.
+    if (product.type === 'manual') {
+        const ok = storeDB.decrementManualStock(session.productId, session.qty);
+        if (!ok) {
+            storeDB.addBalance(m.sender, session.subtotal);
+            await m.reply(`❌ Yah, stok keburu habis. Saldo Anda dikembalikan. Pesanan dibatalkan.`);
+            return true;
+        }
+    }
+
+    const invoiceId = generateInvoiceId();
+    storeDB.createTransaction(invoiceId, m.sender, session.productId, session.qty, session.subtotal, 'saldo', session.subtotal, m.chat, 'product');
+
+    // settlePaid: produk stock + stok ready → langsung kirim;
+    // kalau tidak → status process + owner diminta siapkan produk.
+    await settlePaid(conn, invoiceId, { source: 'saldo-user' });
+    return true;
 };
 
 handler.help = ['buy <id>', 'buy <id> <qty>'];

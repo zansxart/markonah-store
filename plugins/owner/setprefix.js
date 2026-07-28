@@ -37,10 +37,7 @@ Prefix saat ini: *${current}*`);
 
     let displayPrefix = mode === 'noprefix' ? 'Tanpa Prefix (noprefix)' : mode === 'multi' ? 'Multi Prefix (., !, #, /, dll)' : `"${store}"`;
 
-    let teks = `┏━━━〔 ✅ PREFIX DIUBAH 〕━⬣
-┃ ✦ Prefix Baru : ${displayPrefix}
-┃ ✦ Status      : Tersimpan Permanen (SQLite)
-┗━━━━━━━━━━━━━━━━⬣`;
+    let teks = `\`PREFIX BERHASIL DIUBAH\`\n\n↳ *Prefix Baru:* ${displayPrefix}\n↳ *Status:* Tersimpan Permanen (SQLite)`;
 
     m.reply(teks);
 };

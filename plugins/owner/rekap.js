@@ -21,24 +21,23 @@ let handler = async (m, { conn }) => {
         return { ...p, sold };
     }).sort((a, b) => b.sold - a.sold).slice(0, 3);
     
-    let teks = `┏━━━〔 📊 REKAP STORE 〕━⬣
-┃ ✦ Selesai : ${done.length}
-┃ ✦ Pending : ${pending}
-┃ ✦ Proses  : ${process}
-┃ ✦ Batal   : ${cancel}
-┃
-┃ 💰 Pendapatan : Rp ${rp(revenue)}
-┃ 📦 Total Produk Aktif: ${products.length}
-┃`;
+    let teks = `\`REKAP PENJUALAN STORE\`
+
+↳ *Total Selesai:* ${done.length}
+↳ *Pending:* ${pending}
+↳ *Proses:* ${process}
+↳ *Batal:* ${cancel}
+
+↳ *Total Omset:* Rp ${rp(revenue)}
+↳ *Produk Aktif:* ${products.length}
+`;
     
     if (topProducts.length > 0 && topProducts[0].sold > 0) {
-        teks += `\n┃ 🏆 Produk Terlaris:\n`;
+        teks += `\n\`PRODUK TERLARIS\`\n`;
         topProducts.forEach((p, i) => {
-            if (p.sold > 0) teks += `┃ ${i+1}. ${p.name} (${p.sold} terjual)\n`;
+            if (p.sold > 0) teks += `${i+1}. *${p.name}* (${p.sold} terjual)\n`;
         });
     }
-    
-    teks += `┗━━━━━━━━━━━━━━━━⬣`;
     m.reply(teks);
 };
 handler.help = ['rekap'];

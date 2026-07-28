@@ -34,11 +34,10 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
     storeDB.addStock(productId, stockData);
     let newCount = storeDB.getStockCount(productId);
 
-    let teks = `┏━━━〔 📦 STOK DITAMBAHKAN 〕━⬣
-┃ ✦ Produk : ${product.name}
-┃ ✦ Jumlah : +${stockData.length}
-┃ ✦ Total  : ${newCount}
-┗━━━━━━━━━━━━━━━━⬣`;
+    let teks = `\`STOK DITAMBAHKAN\`\n\n` +
+        `↳ *Produk:* ${product.name}\n` +
+        `↳ *Jumlah:* +${stockData.length}\n` +
+        `↳ *Total Stok:* ${newCount}`;
     m.reply(teks);
 };
 handler.help = ['addstok'];

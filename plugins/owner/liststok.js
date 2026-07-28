@@ -11,7 +11,7 @@ let handler = async (m, { conn, args }) => {
         if (!product) return m.reply(`Produk tidak ditemukan!`);
         let stocks = product.stock || [];
         
-        let teks = `┏━━━〔 📦 DETAIL STOK 〕━⬣\n┃ ✦ Produk : ${product.name}\n┃ ✦ Total  : ${stocks.length}\n┃\n`;
+        let teks = `\`DETAIL STOK PRODUK\`\n\n↳ *Produk:* ${product.name}\n↳ *Total Stok:* ${stocks.length}\n\n`;
         stocks.forEach((s, i) => {
             let censored = s.length > 5 ? s.substring(0, 3) + '***' + s.substring(s.length - 2) : '***';
             if (s.includes('@') && s.includes(':')) {
@@ -20,23 +20,20 @@ let handler = async (m, { conn, args }) => {
                 let cPass = pass ? pass.substring(0, 1) + '***' : '';
                 censored = `${cEmail}:${cPass}`;
             }
-            teks += `┃ ${i+1}. ${censored}\n`;
+            teks += `${i+1}. ${censored}\n`;
         });
-        teks += `┗━━━━━━━━━━━━━━━━⬣`;
         return m.reply(teks);
     }
 
     let products = storeDB.getAllProducts();
     let totalStock = 0;
-    let teks = `┏━━━〔 📦 DAFTAR STOK 〕━⬣\n┃\n`;
+    let teks = `\`DAFTAR STOK PRODUK\`\n\n`;
     for (let p of products) {
         let count = storeDB.getStockCount(p.id);
         totalStock += count;
-        teks += `┃ ✦ ${p.name} (${p.id})\n┃   Stok: ${count}\n┃\n`;
+        teks += `↳ 🏷️ *${p.name}* (\`${p.id}\`)\n  Stok: *${count}*\n\n`;
     }
-    teks += `┃ 📊 Total Produk: ${products.length}\n`;
-    teks += `┃ 📊 Total Stok  : ${totalStock}\n`;
-    teks += `┗━━━━━━━━━━━━━━━━⬣`;
+    teks += `Total Produk: *${products.length}*  |  Total Stok: *${totalStock}*\n\n\n_Pantau ketersediaan stok produk store kamu di sini ya boss!_`;
     m.reply(teks);
 };
 handler.help = ['liststok'];

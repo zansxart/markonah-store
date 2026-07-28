@@ -16,10 +16,13 @@ let handler = async (m, { conn }) => {
     let end = Date.now();
     let ping = end - start;
     
-    let text = `┏━━━〔 🏓 PING 〕━⬣
-┃ ✦ Response: ${ping} ms
-┃ ✦ Uptime: ${uptimeStr}
-┗━━━━━━━━━━━━━━━━⬣`;
+    let text = `\`STATUS BOT & RESPONSE\`
+
+↳ *Response Speed:* ${ping} ms
+↳ *Runtime Uptime:* ${uptimeStr}
+
+
+_Sistem bot aktif & merespons dengan normal!_`;
     
     m.reply(text);
 };

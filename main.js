@@ -22,7 +22,6 @@ import { loadMessage, makeWASocket, protoType, serialize } from './core/services
 import { handler } from './core/runtime/handler.js';
 import { getDirname, getFilename, getRequire } from './core/services/runtime/utils.js';
 import { loadPlugins, reloadPlugin, pluginFolder } from './core/services/runtime/plugins.js';
-import { startPaymentHook } from './lib/payment-hook.js';
 import { startTrxSweeper } from './lib/trx-sweeper.js';
 import { animateProgress, showPairingCodePanel, statusLine, terminalTheme } from './core/services/system/terminal-ui.js';
 
@@ -129,8 +128,6 @@ pluginWatcher
     .on('unlink', onPluginChange('unlink'));
 console.log(chalk.green(`[HOT-RELOAD] Memantau perubahan plugin di ${pluginFolder}`));
 
-// Webhook auto-confirm pembayaran GoPay (idempotent: aman dipanggil sekali saat boot)
-startPaymentHook();
 // Auto-cancel pending kedaluwarsa. Umur dibaca dari SQL, jadi pending lama
 // tetap kebersihan walau bot sempat restart (timer di buy.js cuma di memori).
 startTrxSweeper();

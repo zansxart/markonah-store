@@ -1,0 +1,38 @@
+{
+  "menu": [
+    "Hai *@user* 🍃\nSelamat datang di layanan otomatis *{botName}*. Kami menyediakan berbagai produk digital, akun premium, serta jasa kebutuhan sosial media terlengkap dengan proses otomatis 24 jam.",
+    "Halo *@user* 🍃\nSenang melihatmu di *{botName}*! Siap membantumu bertransaksi produk digital & sosmed dengan cepat dan aman.",
+    "Hai *@user* 👋\nSelamat datang di *{botName}*! Tempat terbaik untuk kebutuhan produk digital, akun premium, dan optimasi sosmed 24/7.",
+    "Halo kak *@user* 🍃\nSelamat berbelanja di *{botName}*! Layanan otomatis, proses instan, dan stok terupdate setiap hari."
+  ],
+  "katalog": [
+    "Silakan pilih kategori produk digital yang kamu inginkan di bawah ini kak (balas angkanya):",
+    "Berikut adalah daftar kategori produk digital & akun premium yang ready kak:",
+    "Cek berbagai pilihan kategori produk digital unggulan kami di bawah ini ya kak:"
+  ],
+  "saldo": [
+    "Berikut adalah rincian informasi saldo akun kamu kak:",
+    "Cek status saldo deposit kamu saat ini di bawah ini ya kak:",
+    "Informasi akun & sisa saldo deposit kamu saat ini:"
+  ],
+  "topup": [
+    "Silakan pilih metode pembayaran topup deposit yang kamu inginkan kak:",
+    "Pilihan metode pembayaran isi saldo deposit kamu:"
+  ],
+  "sosmed": [
+    "Katalog layanan sosial media terlengkap untuk naikin followers, likes & views kak:",
+    "Pilihan platform sosial media terbaik untuk optimasi akun kamu kak:"
+  ],
+  "cektrx": [
+    "Berikut adalah rincian detail transaksi invoice kamu kak:",
+    "Detail status & informasi pesanan invoice kamu:"
+  ],
+  "riwayat": [
+    "Berikut adalah 10 riwayat transaksi belanja kamu terbaru kak:",
+    "Daftar riwayat pembelian yang telah kamu lakukan di toko kami:"
+  ],
+  "buy": [
+    "Silakan konfirmasi pesanan produk & metode pembayaran kamu kak:",
+    "Detail rincian pembelian produk yang akan kamu pesan:"
+  ]
+}

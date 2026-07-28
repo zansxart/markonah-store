@@ -4,20 +4,22 @@
  */
 
 let handler = async (m, { conn }) => {
-    let ownerNum = (Array.isArray(global.owner) && global.owner[0]) ? global.owner[0] : '6281234567890';
-    if (Array.isArray(ownerNum)) ownerNum = ownerNum[0];
-    let cleanOwnerNum = String(ownerNum).replace(/[^0-9]/g, '');
+    let rawOwner = global.owner || global.info?.numberOwn || '6285802569316';
+    if (Array.isArray(rawOwner)) rawOwner = rawOwner[0];
+    if (Array.isArray(rawOwner)) rawOwner = rawOwner[0];
+    let cleanOwnerNum = String(rawOwner).replace(/[^0-9]/g, '');
     
     let waLink = `https://wa.me/${cleanOwnerNum}`;
     let igLink = global.url?.ig || 'https://instagram.com/zansxart';
     
-    let text = `┏━━━〔 👑 OWNER INFO 〕━⬣
-┃
-┃ ✦ Nomor: ${cleanOwnerNum}
-┃ ✦ WhatsApp: ${waLink}
-┃ ✦ Instagram: ${igLink}
-┃
-┗━━━━━━━━━━━━━━━━⬣`;
+    let text = `\`INFORMASI OWNER & CONTACT\`
+
+↳ *Nomor:* +${cleanOwnerNum}
+↳ *WhatsApp:* ${waLink}
+↳ *Instagram:* ${igLink}
+
+
+_Silakan hubungi kontak di atas jika ada pertanyaan / kendala!_`;
 
     let vcard = `BEGIN:VCARD
 VERSION:3.0

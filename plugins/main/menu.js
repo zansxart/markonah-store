@@ -4,8 +4,9 @@
  */
 import fs from 'fs';
 import { storeDB } from '../../lib/store-db.js';
+import { getRandomIntro, getRandomFooter } from '../../lib/random-msg.js';
 
-let handler = async (m, { conn, usedPrefix }) => {
+let handler = async (m, { conn, usedPrefix, isOwner }) => {
     let allProducts = storeDB.getAllProducts();
     let stockCounts = storeDB.getAllStockCounts();
     let totalStock = stockCounts.reduce((a, b) => a + b.count, 0);
@@ -16,51 +17,26 @@ let handler = async (m, { conn, usedPrefix }) => {
     };
     
     let botName = global.info?.nameBot || global.info?.botName || 'MARKONAH STORE';
-    let date = new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-    let time = new Date().toLocaleTimeString('id-ID');
-    
     const readMore = String.fromCharCode(8206).repeat(4001);
 
-    let menuText = `*${botName.toUpperCase()}*
+    let userTag = `@${m.sender.split('@')[0]}`;
+    let intro = getRandomIntro(userTag, botName);
+    let footer = getRandomFooter();
 
-Halo *@${m.sender.split('@')[0]}* 👋
+    let menuText = `*${botName.toUpperCase()}*\n\n${intro}\n\n\`STATISTIK STORE\`\n• Produk: ${stats.products}  |  Stok: ${stats.stock}  |  Transaksi: ${stats.trx}\n${readMore}\n\`DEPOSIT & SALDO\`\n↳ *${usedPrefix}saldo* Cek sisa saldo deposit\n↳ *${usedPrefix}topup <nominal>* Isi saldo deposit akun\n\n\`PRODUK DIGITAL & AKUN\`\n↳ *${usedPrefix}katalog* Lihat daftar katalog produk\n↳ *${usedPrefix}buy <kode>* Pembelian produk stok ready\n\n\`JASA SOSIAL MEDIA\`\n↳ *${usedPrefix}sosmed* Katalog layanan sosial media\n↳ *${usedPrefix}carisosmed <query>* Cari layanan sosmed\n↳ *${usedPrefix}belisosmed <id> <target> <qty>* Order jasa sosmed\n↳ *${usedPrefix}ceksosmed <order_id>* Cek status pesanan sosmed\n\n\`RIWAYAT & TRANSAKSI\`\n↳ *${usedPrefix}riwayat* Cek riwayat transaksi belanja\n↳ *${usedPrefix}cektrx <invoice>* Cek status transaksi invoice\n↳ *${usedPrefix}bataltrx* Batalkan pesanan pending\n`;
 
-╭─── 📊 *SYSTEM INFO*
-│ 📅 Date : ${date}
-│ ⏰ Time : ${time}
-│ 📦 Total Produk : *${stats.products}*
-│ 🔑 Total Stok : *${stats.stock}*
-│ 💳 Transaksi : *${stats.trx}*
-╰───────────────────
-${readMore}
-╭─── 🛒 *CUSTOMER MENU*
-│ › \`${usedPrefix}katalog\` ── Katalog Produk
-│ › \`${usedPrefix}buy <id>\` ── Beli Produk
-│ › \`${usedPrefix}cektrx <invoice>\` ── Cek Status Order
-│ › \`${usedPrefix}riwayat\` ── Riwayat Belanja
-│ › \`${usedPrefix}bataltrx\` ── Batalkan Transaksi
-╰───────────────────
+    if (isOwner) {
+        menuText += `\n\`ADMIN & OWNER\`\n↳ *${usedPrefix}acc <invoice>* Konfirmasi bayar\n↳ *${usedPrefix}acc <invoice> <isi>* Kirim pesanan ke buyer\n↳ *${usedPrefix}proses <invoice>* Tandai sedang diproses\n↳ *${usedPrefix}medansaldo* Cek saldo provider sosmed\n↳ *${usedPrefix}addsaldo <user> <nominal>* Tambah saldo user\n↳ *${usedPrefix}minsaldo <user> <nominal>* Potong saldo user\n↳ *${usedPrefix}setsmmprofit <persen>* Set profit SMM\n↳ *${usedPrefix}addproduk* Tambah produk stok\n↳ *${usedPrefix}delproduk <id>* Hapus produk\n↳ *${usedPrefix}addstok <id>* Isi stok akun produk\n↳ *${usedPrefix}liststok* Cek stok ketersediaan\n↳ *${usedPrefix}done <invoice>* Selesai & kirim stok\n↳ *${usedPrefix}kirim <invoice> <data>* Kirim manual\n↳ *${usedPrefix}batal <invoice>* Batal pesanan\n↳ *${usedPrefix}setqris <data>* Update QRIS\n↳ *${usedPrefix}setprefix <prefix>* Ubah prefix\n↳ *${usedPrefix}rekap* Rekap omset penjualan\n`;
+    }
 
-╭─── 👑 *ADMIN & OWNER*
-│ › \`${usedPrefix}addproduk\` ── Tambah Produk
-│ › \`${usedPrefix}delproduk <id>\` ── Hapus Produk
-│ › \`${usedPrefix}addstok <id>\` ── Isi Stok Produk
-│ › \`${usedPrefix}liststok\` ── Cek Stok Akun
-│ › \`${usedPrefix}proses <invoice>\` ── Proses Pesanan
-│ › \`${usedPrefix}done <invoice>\` ── Selesai & Kirim
-│ › \`${usedPrefix}kirim <invoice>\` ── Kirim Manual
-│ › \`${usedPrefix}batal <invoice>\` ── Batal Pesanan
-│ › \`${usedPrefix}setqris <data>\` ── Update QRIS
-│ › \`${usedPrefix}setprefix <prefix>\` ── Ubah Prefix
-│ › \`${usedPrefix}rekap\` ── Rekap Omset
-╰───────────────────
+    menuText += `\n\n${footer}`;
 
-_@credit zansxart_`;
-
-    let imageUrl = global.media?.thumbnail || './storage/assets/thumbnail.jpg';
+    let imageUrl = global.thumb?.menu || global.media?.thumbnail || './storage/assets/thumbnail.jpg';
     let imageSource = (typeof imageUrl === 'string' && fs.existsSync(imageUrl))
         ? fs.readFileSync(imageUrl)
-        : { url: imageUrl };
+        : (global.media?.thumbnail && fs.existsSync(global.media.thumbnail)
+            ? fs.readFileSync(global.media.thumbnail)
+            : { url: imageUrl });
     
     await conn.sendMessage(m.chat, {
         image: imageSource,

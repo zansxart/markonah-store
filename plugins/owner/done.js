@@ -4,6 +4,7 @@
  */
 import { storeDB } from '../../lib/store-db.js';
 import { rp, usage, copyable } from '../../lib/format.js';
+import { replyThumb, sendThumb } from '../../lib/ui.js';
 
 let handler = async (m, { conn, args, usedPrefix, command }) => {
     let inv = args[0];
@@ -23,19 +24,24 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
     if (product && storeDB.getStockCount(product.id) >= trx.qty) {
         let takenStock = storeDB.takeStock(product.id, trx.qty, trx.buyer_jid, inv);
         if (takenStock && takenStock.length > 0) {
-            stockDataStr = takenStock.join('\n┃ ');
+            stockDataStr = takenStock.join('\n  ');
         }
     }
 
     storeDB.completeTransaction(inv, stockDataStr);
 
-    m.reply(`┏━━━〔 ✅ TRANSAKSI SELESAI 〕━⬣\n┃ ✦ Invoice : ${copyable(inv)}\n┃ ✦ Status  : Selesai\n┗━━━━━━━━━━━━━━━━⬣`);
+    await replyThumb(conn, m, `\`TRANSAKSI SELESAI\`\n\n↳ *Invoice:* ${copyable(inv)}\n↳ *Status:* Selesai`, 'done');
 
     let productName = product ? product.name : trx.product_id;
     let totalPrice = trx.total_price || 0;
 
-    let teksBuyer = `┏━━━〔 📦 PESANAN SELESAI 〕━⬣\n┃\n┃ 🧾 Invoice : ${copyable(inv)}\n┃ 📦 Produk  : ${productName}\n┃ 💰 Total   : Rp ${rp(totalPrice)}\n┃\n┃ 📋 Data Akun:\n┃ ${stockDataStr}\n┃\n┃ ⚠️ Segera ganti password!\n┗━━━━━━━━━━━━━━━━⬣`;
-    conn.sendMessage(trx.buyer_jid, { text: teksBuyer });
+    let teksBuyer = `\`PESANAN SELESAI\`\n\n` +
+        `↳ *Invoice:* ${copyable(inv)}\n` +
+        `↳ *Produk:* ${productName}\n` +
+        `↳ *Total Harga:* Rp ${rp(totalPrice)}\n\n` +
+        `*Data Akun / Produk:*\n${stockDataStr}\n\n\n` +
+        `_Segera ganti password (jika akun). Terima kasih telah berbelanja!_`;
+    await sendThumb(conn, trx.buyer_jid, teksBuyer, 'done');
 };
 handler.help = ['done'];
 handler.command = ['done', 'selesai', 'complete'];

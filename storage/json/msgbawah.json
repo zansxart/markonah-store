@@ -1,0 +1,42 @@
+{
+  "menu": [
+    "Mau order yang mana kak? Silakan ketik perintah di atas ya!",
+    "Ada yang membuatmu tertarik kak? Langsung ketik perintahnya di atas ya!",
+    "Silakan pilih menu di atas ya kak! Kami siap proses secepatnya.",
+    "Mau transaksi apa hari ini kak? Ketik perintah di atas untuk mulai!",
+    "Siap melayani kebutuhanmu kak! Pilih perintah yang kamu inginkan di atas ya."
+  ],
+  "katalog": [
+    "Minat kategori yang mana nih kak? Silakan pilih di atas ya!",
+    "Ada produk impianmu kak? Silakan pilih kategori atau langsung order ya!",
+    "Stok terupdate setiap hari kak! Pilih kategorinya di atas ya."
+  ],
+  "saldo": [
+    "Mau isi saldo deposit kak? Ketik *.topup <nominal>* ya!",
+    "Butuh tambah saldo? Ketik *.topup <nominal>* untuk isi deposit secepatnya!",
+    "Pastikan saldomu cukup sebelum bertransaksi ya kak!"
+  ],
+  "topup": [
+    "Pilihan berlaku 5 menit ya kak. Ketik *batal* jika ingin membatalkan.",
+    "Silakan balas angka metodenya kak. Ketik *batal* untuk membatalkan."
+  ],
+  "sosmed": [
+    "Mau optimasi sosmed yang mana nih kak? Pilih platformnya di atas ya!",
+    "Siap melesatkan sosmed kamu kak! Pilih platformnya di atas ya!",
+    "Tertarik dengan layanan sosmed kami? Langsung pesan kak!"
+  ],
+  "cektrx": [
+    "Terima kasih banyak sudah bertransaksi di toko kami kak!",
+    "Ada kendala transaksi? Hubungi owner via *.owner* ya kak!",
+    "Terima kasih telah mempercayakan kebutuhan digitalmu pada kami kak!"
+  ],
+  "riwayat": [
+    "Yuk transaksi lagi kak! Banyak produk menarik & stok ready yang menantimu.",
+    "Terima kasih sudah langganan berbelanja di toko kami kak!",
+    "Yuk borong lagi produk favoritmu kak!"
+  ],
+  "buy": [
+    "Pilihan berlaku 5 menit kak. Ketik *batal* untuk membatalkan.",
+    "Pastikan detail pesanan sudah sesuai sebelum konfirmasi ya kak!"
+  ]
+}

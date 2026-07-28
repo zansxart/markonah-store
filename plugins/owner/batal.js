@@ -19,10 +19,10 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
 
     storeDB.updateTransactionStatus(inv, 'cancel');
 
-    let teksAdmin = `┏━━━〔 ❌ TRANSAKSI DIBATALKAN 〕━⬣\n┃ ✦ Invoice : ${copyable(inv)}\n┃ ✦ Status  : Dibatalkan\n┃\n┃ ⚠️ Stok yang telah diambil tidak\n┃ dikembalikan otomatis.\n┗━━━━━━━━━━━━━━━━⬣`;
+    let teksAdmin = `\`TRANSAKSI DIBATALKAN\`\n\n↳ *Invoice:* ${copyable(inv)}\n↳ *Status:* Dibatalkan\n\n_Catatan: Stok yang diambil tidak dikembalikan otomatis._`;
     m.reply(teksAdmin);
 
-    let teksBuyer = `┏━━━〔 ❌ PESANAN DIBATALKAN 〕━⬣\n┃\n┃ 🧾 Invoice : ${copyable(inv)}\n┃ Mohon maaf, pesanan Anda telah dibatalkan oleh admin.\n┃ Silakan hubungi admin untuk info lebih lanjut.\n┗━━━━━━━━━━━━━━━━⬣`;
+    let teksBuyer = `\`PESANAN DIBATALKAN\`\n\n↳ *Invoice:* ${copyable(inv)}\n\n_Mohon maaf, pesanan Anda telah dibatalkan oleh admin. Silakan hubungi admin untuk informasi lebih lanjut._`;
     conn.sendMessage(trx.buyer_jid, { text: teksBuyer });
 };
 handler.help = ['batal'];

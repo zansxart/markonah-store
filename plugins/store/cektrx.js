@@ -4,6 +4,8 @@
  */
 import { storeDB } from '../../lib/store-db.js';
 import { rp, formatDate, formatTime, statusEmoji, usage, copyable } from '../../lib/format.js';
+import { replyThumb } from '../../lib/ui.js';
+import { getRandomIntro, getRandomFooter } from '../../lib/random-msg.js';
 
 let handler = async (m, { conn, args, usedPrefix, command }) => {
     if (!args[0]) return m.reply(usage({
@@ -26,18 +28,20 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
     let dateStr = typeof formatDate === 'function' ? formatDate(dateObj) : dateObj.toLocaleDateString();
     let timeStr = typeof formatTime === 'function' ? formatTime(dateObj) : dateObj.toLocaleTimeString();
     
-    let text = `┏━━━〔 🧾 DETAIL TRANSAKSI 〕━⬣
-┃ ✦ Invoice: ${copyable(trx.invoice_id)}
-┃ ✦ Pembeli: @${trx.buyer_jid.split('@')[0]}
-┃ ✦ Produk: ${productName}
-┃ ✦ Qty: ${trx.qty}
-┃ ✦ Total: Rp ${rp(trx.total_price)}
-┃ ✦ Status: ${emoji} ${trx.status.toUpperCase()}
-┃ ✦ Tanggal: ${dateStr}
-┃ ✦ Waktu: ${timeStr}
-┗━━━━━━━━━━━━━━━━⬣`;
+    let intro = getRandomIntro('cektrx');
+    let footer = getRandomFooter('cektrx');
+
+    let text = `\`DETAIL TRANSAKSI INVOICE\`\n\n${intro}\n\n` +
+        `↳ 🧾 *Invoice:* ${copyable(trx.invoice_id)}\n` +
+        `↳ 👤 *Pembeli:* @${trx.buyer_jid.split('@')[0]}\n` +
+        `↳ 📦 *Produk:* ${productName}\n` +
+        `↳ 🔢 *Jumlah:* ${trx.qty}\n` +
+        `↳ 💰 *Total Harga:* Rp ${rp(trx.total_price)}\n` +
+        `↳ 📊 *Status:* ${emoji} ${trx.status.toUpperCase()}\n` +
+        `↳ 🕒 *Waktu:* ${dateStr} ${timeStr}\n\n\n` +
+        `${footer}`;
     
-    await conn.sendMessage(m.chat, { text, mentions: [trx.buyer_jid] }, { quoted: m });
+    await replyThumb(conn, m, text, 'invoice', { mentions: [trx.buyer_jid] });
 };
 
 handler.help = ['cektrx <invoice>'];

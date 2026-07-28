@@ -16,19 +16,16 @@ let handler = async (m, { conn, usedPrefix, command }) => {
     const isLid = String(senderDec).endsWith('@lid');
 
     const info = [
-        `┏━━━〔 🔍 DIAGNOSA JID 〕━⬣`,
-        `┃ Chat  : ${m.chat}`,
-        `┃ Grup? : ${String(m.chat).endsWith('@g.us') ? 'YA' : 'TIDAK (PC)'}`,
-        `┃`,
-        `┃ sender mentah : ${senderRaw}`,
-        `┃ sender decode : ${senderDec}`,
-        `┃ participant   : ${m.key?.participant || '-'}`,
-        `┃ LID?          : ${isLid ? '⚠️ YA — ini biang masalahnya' : '✅ TIDAK (nomor asli)'}`,
-        `┃`,
-        `┃ owner config  : ${Array.isArray(global.owner) ? global.owner[0] : global.owner}`,
-        `┃ bot id        : ${dec(conn.user?.id)}`,
-        `┃ bot lid       : ${conn.authState?.creds?.me?.lid || '-'}`,
-        `┗━━━━━━━━━━━━━━━━⬣`,
+        `\`DIAGNOSA JID WA\``,
+        ``,
+        `↳ *Chat JID:* ${m.chat}`,
+        `↳ *Grup:* ${String(m.chat).endsWith('@g.us') ? 'YA' : 'TIDAK (PC)'}`,
+        `↳ *Sender Mentah:* ${senderRaw}`,
+        `↳ *Sender Decode:* ${senderDec}`,
+        `↳ *Participant:* ${m.key?.participant || '-'}`,
+        `↳ *Format LID:* ${isLid ? 'YA' : 'TIDAK (Nomor Asli)'}`,
+        `↳ *Owner Config:* ${Array.isArray(global.owner) ? global.owner[0] : global.owner}`,
+        `↳ *Bot ID:* ${dec(conn.user?.id)}`,
     ].join('\n');
 
     await m.reply(info);

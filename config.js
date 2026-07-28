@@ -61,6 +61,20 @@ global.media = {
     thumbnail: './storage/assets/thumbnail.jpg',
 };
 
+// Thumbnail per-aksi. Tinggal taruh file dengan nama sesuai di storage/assets/.
+// Kalau file-nya belum ada, otomatis fallback ke global.media.thumbnail,
+// jadi aman walau belum semua gambar dibuat.
+global.thumb = {
+    menu:     './storage/assets/menu.jpg',       // tampilan menu utama
+    katalog:  './storage/assets/katalog.jpg',    // daftar kategori & produk
+    invoice:  './storage/assets/invoice.jpg',    // tagihan / QRIS pembayaran
+    wait:     './storage/assets/wait.jpg',       // "mohon ditunggu / diproses"
+    proses:   './storage/assets/proses.jpg',     // pesanan sedang diproses
+    done:     './storage/assets/done.jpg',       // pesanan selesai / terkirim
+    topup:    './storage/assets/topup.jpg',      // topup saldo berhasil
+    gagal:    './storage/assets/gagal.jpg',      // pembayaran/proses gagal
+};
+
 global.url = {
     web: 'https://zansxart.me',
     sig: 'https://instagram.com/zansxart',
@@ -74,9 +88,6 @@ global.url = {
 global.payment = {
     qris: '00020101021126610014COM.GO-JEK.WWW01189360091438534824440210G8534824440303UMI51440014ID.CO.QRIS.WWW0215ID10254585814570303UMI5204597053033605802ID5908zansxart6006BREBES61055227562070703A0163043BAB',
     dana: '085802569316',
-    // ── Webhook auto-confirm GoPay Merchant (baca notif GoBiz via HP standby) ──
-    webhookToken: 'A2AxnnhkVOTg-gxoZ1gFEK_ieUvyJge8',  // token acak rahasia (jangan disebar)
-    webhookPort: 3939,                        // port webhook (buka di firewall VPS)
 };
 
 // ═══════════════════════════════════════
@@ -84,13 +95,23 @@ global.payment = {
 // ═══════════════════════════════════════
 
 global.store = {
-    autoSend: true,         // Otomatis kirim stok setelah bayar (jika stok tersedia)
-    autoConfirm: true,      // Aktifkan webhook auto-confirm GoPay (false = manual acc saja)
+    autoPayment: false,     // Payment gateway otomatis (belum jadi → user lihat "dalam pengembangan")
     paymentTimeout: 300,    // Timeout pembayaran dalam detik (5 menit)
     notifGroup: '',         // Cadangan JID grup notif. Biarkan kosong: notif otomatis
                             // dikirim ke grup tempat transaksi dibuat. Isi hanya kalau
                             // mau SEMUA notif dipusatkan ke satu grup tertentu.
     welcomeMsg: true,       // Kirim pesan selamat datang ke pembeli baru
+};
+
+// ═══════════════════════════════════════
+// │  MEDANPEDIA SMM API CONFIGURATION
+// ═══════════════════════════════════════
+
+global.medanpedia = {
+    apiId: '45811',              // Masukkan API ID dari akun Medanpedia Anda
+    apiKey: '9tgelv-sdi3wu-6cum5y-dmri4c-qkfzib',             // Masukkan API Key dari akun Medanpedia Anda
+    profitPercent: 30,      // Margin keuntungan % (contoh: 20 = profit +20% dari harga dasar)
+    profitNominal: 5000,       // Margin keuntungan tetap Rp (opsional, misal: 2000 = +Rp 2.000)
 };
 
 // ═══════════════════════════════════════

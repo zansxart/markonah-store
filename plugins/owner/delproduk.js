@@ -20,7 +20,7 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
     let name = product.name;
     storeDB.deleteProduct(id);
     
-    m.reply(`┏━━━〔 🗑️ PRODUK DIHAPUS 〕━⬣\n┃ ✦ ID   : ${id}\n┃ ✦ Nama : ${name}\n┗━━━━━━━━━━━━━━━━⬣`);
+    m.reply(`\`PRODUK DIHAPUS\`\n\n↳ *ID:* ${id}\n↳ *Nama:* ${name}`);
 };
 handler.help = ['delproduk'];
 handler.command = ['delproduk', 'hapusproduk', 'dp'];

@@ -15,8 +15,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
     global.payment = global.payment || {};
     global.payment.qris = text;
     
-    let partial = text.substring(0, 15) + '...';
-    m.reply(`┏━━━〔 ✅ QRIS BERHASIL DISET 〕━⬣\n┃ ✦ String : ${partial}\n┗━━━━━━━━━━━━━━━━⬣`);
+    m.reply(`\`QRIS BERHASIL DISET\`\n\n↳ *String:* ${partial}\n↳ *Status:* Aktif`);
 };
 handler.help = ['setqris'];
 handler.command = ['setqris'];
