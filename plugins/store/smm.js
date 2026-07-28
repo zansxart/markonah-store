@@ -34,14 +34,14 @@ async function getCachedServices() {
 }
 
 const PLATFORMS = [
-    { key: 'instagram', aliases: ['ig', 'instagram'], name: 'INSTAGRAM', emoji: '📸' },
-    { key: 'tiktok', aliases: ['tt', 'tiktok'], name: 'TIKTOK', emoji: '🎵' },
-    { key: 'youtube', aliases: ['yt', 'youtube'], name: 'YOUTUBE', emoji: '🎬' },
-    { key: 'facebook', aliases: ['fb', 'facebook'], name: 'FACEBOOK', emoji: '📘' },
-    { key: 'twitter', aliases: ['tw', 'twitter', 'x'], name: 'TWITTER / X', emoji: '🐦' },
-    { key: 'telegram', aliases: ['tg', 'telegram'], name: 'TELEGRAM', emoji: '✈️' },
-    { key: 'whatsapp', aliases: ['wa', 'whatsapp'], name: 'WHATSAPP', emoji: '🟢' },
     { key: 'ecommerce', aliases: ['shop', 'shopee', 'tokopedia'], name: 'SHOPEE & TOKOPEDIA', emoji: '🛒' },
+    { key: 'facebook', aliases: ['fb', 'facebook'], name: 'FACEBOOK', emoji: '📘' },
+    { key: 'instagram', aliases: ['ig', 'instagram'], name: 'INSTAGRAM', emoji: '📸' },
+    { key: 'telegram', aliases: ['tg', 'telegram'], name: 'TELEGRAM', emoji: '✈️' },
+    { key: 'tiktok', aliases: ['tt', 'tiktok'], name: 'TIKTOK', emoji: '🎵' },
+    { key: 'twitter', aliases: ['tw', 'twitter', 'x'], name: 'TWITTER / X', emoji: '🐦' },
+    { key: 'whatsapp', aliases: ['wa', 'whatsapp'], name: 'WHATSAPP', emoji: '🟢' },
+    { key: 'youtube', aliases: ['yt', 'youtube'], name: 'YOUTUBE', emoji: '🎬' },
     { key: 'other', aliases: ['lainnya', 'other'], name: 'LAINNYA (Spotify, Discord, Threads, dll)', emoji: '⚡' },
 ];
 
@@ -292,7 +292,7 @@ let handler = async (m, { conn, args, usedPrefix, command, isOwner }) => {
 
         PLATFORMS.forEach((pf, i) => {
             let count = platformMap[pf.key]?.length || 0;
-            txt += `${i + 1}. ${pf.emoji} *${pf.name}* _(${count} Layanan)_\n`;
+            txt += `${i + 1}. 🛍️ *${pf.name}* ${pf.emoji} _(${count} Layanan)_\n`;
         });
 
         txt += `\n*Cara Akses:* Balas angka di atas (contoh: *1*) atau ketik *${p}${command} <nomor_atau_nama_platform>*\n`;
