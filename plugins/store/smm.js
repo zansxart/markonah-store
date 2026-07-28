@@ -293,7 +293,7 @@ let handler = async (m, { conn, args, usedPrefix, command, isOwner }) => {
             expires: Date.now() + 5 * 60 * 1000,
         };
 
-        return replyThumb(conn, m, txt, 'katalog');
+        return replyThumb(conn, m, txt, 'sosmed');
     }
 
     // ── TINGKAT 2: PILIH PLATFORM (misal: .sosmed facebook, .fb, .sosmed 4) ──

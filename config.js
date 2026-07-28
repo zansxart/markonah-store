@@ -74,6 +74,7 @@ global.thumb = {
     topup:     './storage/assets/topup.jpg',      // topup saldo berhasil
     gagal:     './storage/assets/gagal.jpg',      // pembayaran/proses gagal
     diterima:  './storage/assets/diterima.jpg',   // pembayaran diterima / dikonfirmasi
+    sosmed:    './storage/assets/sosmed.jpg',     // katalog utama jasa sosmed
     instagram: './storage/assets/instagram.jpg',
     tiktok:    './storage/assets/tiktok.jpg',
     youtube:   './storage/assets/youtube.jpg',
