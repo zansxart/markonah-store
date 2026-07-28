@@ -13,6 +13,7 @@ import { rp, generateInvoiceId, usage, copyable } from '../../lib/format.js';
 import { settlePaid } from '../../lib/settle.js';
 import { displayPrefix } from '../../lib/prefix-util.js';
 import { replyThumb } from '../../lib/ui.js';
+import { startFlow } from '../../lib/session.js';
 import { getRandomIntro, getRandomFooter } from '../../lib/random-msg.js';
 
 const SESSION_TTL = 5 * 60 * 1000; // opsi pembayaran berlaku 5 menit
@@ -57,8 +58,10 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
     let subtotal = product.price * qty;
     let user = storeDB.getOrCreateUser(m.sender, m.pushName || 'User');
 
-    // Simpan sesi opsi pembayaran (satu sesi aktif per user)
+    // Simpan sesi opsi pembayaran (satu sesi aktif per user).
+    // Bersihkan flow lain (katalog/topup/smm) biar balasan angka tidak nyantol.
     conn.buySession = conn.buySession || {};
+    startFlow(conn, m.sender, 'buySession');
     conn.buySession[m.sender] = {
         productId,
         qty,

@@ -10,6 +10,7 @@ import { rp, generateInvoiceId, usage, copyable } from '../../lib/format.js';
 import { createQRIS } from '../../lib/qris.js';
 import { notifyNewOrder } from '../../lib/store-notify.js';
 import { replyThumb } from '../../lib/ui.js';
+import { startFlow } from '../../lib/session.js';
 import medanpedia from '../../lib/medanpedia.js';
 import QRCode from 'qrcode';
 
@@ -46,14 +47,26 @@ const PLATFORMS = [
 
 function getMasterPlatformKey(catName = '') {
     const name = catName.toLowerCase();
-    if (name.includes('instagram') || name.includes('ig')) return 'instagram';
-    if (name.includes('tiktok') || name.includes('tt')) return 'tiktok';
-    if (name.includes('youtube') || name.includes('yt')) return 'youtube';
-    if (name.includes('facebook') || name.includes('fb')) return 'facebook';
-    if (name.includes('twitter') || name.includes('tweet') || name.includes('x ')) return 'twitter';
-    if (name.includes('telegram') || name.includes('tg')) return 'telegram';
-    if (name.includes('whatsapp') || name.includes('wa')) return 'whatsapp';
+
+    // 1. Cek nama platform lengkap terlebih dahulu
+    if (name.includes('instagram')) return 'instagram';
+    if (name.includes('tiktok')) return 'tiktok';
+    if (name.includes('youtube')) return 'youtube';
+    if (name.includes('facebook')) return 'facebook';
+    if (name.includes('twitter') || name.includes('tweet') || /\bx\b/.test(name)) return 'twitter';
+    if (name.includes('telegram')) return 'telegram';
+    if (name.includes('whatsapp')) return 'whatsapp';
     if (name.includes('shopee') || name.includes('tokopedia') || name.includes('bukalapak') || name.includes('lazada')) return 'ecommerce';
+
+    // 2. Cek singkatan dengan Word Boundary (\b) agar 'twitter' tidak kena 'tt'
+    if (/\b(ig)\b/i.test(name)) return 'instagram';
+    if (/\b(tt)\b/i.test(name)) return 'tiktok';
+    if (/\b(yt)\b/i.test(name)) return 'youtube';
+    if (/\b(fb)\b/i.test(name)) return 'facebook';
+    if (/\b(tw)\b/i.test(name)) return 'twitter';
+    if (/\b(tg)\b/i.test(name)) return 'telegram';
+    if (/\b(wa)\b/i.test(name)) return 'whatsapp';
+
     return 'other';
 }
 
@@ -288,6 +301,7 @@ let handler = async (m, { conn, args, usedPrefix, command, isOwner }) => {
 
         // Simpan sesi level 1
         conn.smmSession = conn.smmSession || {};
+        startFlow(conn, m.sender, 'smmSession');
         conn.smmSession[m.sender] = {
             level: 1,
             expires: Date.now() + 5 * 60 * 1000,
@@ -327,6 +341,7 @@ let handler = async (m, { conn, args, usedPrefix, command, isOwner }) => {
 
         // Simpan sesi level 2
         conn.smmSession = conn.smmSession || {};
+        startFlow(conn, m.sender, 'smmSession');
         conn.smmSession[m.sender] = {
             level: 2,
             platform: selectedPlatform,

@@ -5,6 +5,7 @@
 import { storeDB } from '../../lib/store-db.js';
 import { rp } from '../../lib/format.js';
 import { replyThumb } from '../../lib/ui.js';
+import { startFlow } from '../../lib/session.js';
 import { getRandomIntro, getRandomFooter } from '../../lib/random-msg.js';
 
 const SESSION_TTL = 3 * 60 * 1000; // 3 menit
@@ -100,6 +101,7 @@ let handler = async (m, { conn, args, usedPrefix }) => {
     }
 
     conn.katalogSession = conn.katalogSession || {};
+    startFlow(conn, m.sender, 'katalogSession');
     conn.katalogSession[m.sender] = {
         categories: [...categories],
         expires: Date.now() + SESSION_TTL,
@@ -112,6 +114,10 @@ let handler = async (m, { conn, args, usedPrefix }) => {
 handler.before = async (m, { conn, usedPrefix }) => {
     const text = (m.text || '').trim();
     if (!/^\d+$/.test(text)) return; // hanya reaksi ke pesan yang murni angka
+
+    // Kalau ada flow lain aktif (buy/topup/smm), biarkan flow itu yang menangani —
+    // jangan ikut campur, biar tidak dobel-balas.
+    if (conn.buySession?.[m.sender] || conn.topupSession?.[m.sender] || conn.smmSession?.[m.sender]) return;
 
     const session = conn.katalogSession?.[m.sender];
     if (!session) return; // tidak ada sesi → jangan ganggu obrolan biasa

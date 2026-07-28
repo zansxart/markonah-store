@@ -11,6 +11,7 @@ import { createQRIS } from '../../lib/qris.js';
 import { notifyNewOrder } from '../../lib/store-notify.js';
 import { replyThumb } from '../../lib/ui.js';
 import { displayPrefix } from '../../lib/prefix-util.js';
+import { startFlow } from '../../lib/session.js';
 import { getRandomIntro, getRandomFooter } from '../../lib/random-msg.js';
 import QRCode from 'qrcode';
 
@@ -66,8 +67,10 @@ let handler = async (m, { conn, args, usedPrefix, command, isOwner }) => {
             return m.reply(`❌ Nominal topup minimal adalah Rp 1.000.`);
         }
 
-        // Simpan sesi opsi metode topup (satu sesi aktif per user)
+        // Simpan sesi opsi metode topup (satu sesi aktif per user).
+        // Bersihkan flow lain (katalog/buy/smm) biar balasan angka tidak nyantol.
         conn.topupSession = conn.topupSession || {};
+        startFlow(conn, m.sender, 'topupSession');
         conn.topupSession[m.sender] = {
             nominal,
             expires: Date.now() + TOPUP_SESSION_TTL,
