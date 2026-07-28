@@ -323,7 +323,7 @@ let handler = async (m, { conn, args, usedPrefix, command, isOwner }) => {
 
     // Dapatkan sub-kategori unik dari platform terpilih (diurutkan A-Z)
     let subCategories = [...new Set(pfServices.map(s => s.category))].filter(Boolean);
-    subCategories.sort((a, b) => a.localeCompare(b, 'id', { sensitivity: 'base' }));
+    subCategories.sort((a, b) => a.trim().toLowerCase().localeCompare(b.trim().toLowerCase(), 'id'));
 
     // Jika user cuma ngetik .sosmed facebook atau .fb -> tampilkan daftar Sub-Kategori di Platform tsb
     if (effectiveArgs.length === 1) {
@@ -374,7 +374,7 @@ let handler = async (m, { conn, args, usedPrefix, command, isOwner }) => {
     if (conn.smmSession?.[m.sender]) delete conn.smmSession[m.sender];
 
     let targetServices = pfServices.filter(s => s.category === selectedSubCat);
-    targetServices.sort((a, b) => a.name.localeCompare(b.name, 'id', { sensitivity: 'base' }));
+    targetServices.sort((a, b) => (a.name || '').trim().toLowerCase().localeCompare((b.name || '').trim().toLowerCase(), 'id'));
 
     let txt = `\`${selectedSubCat.toUpperCase()}\`\n\n`;
     txt += `Daftar Layanan Tersedia (${targetServices.length}):\n\n`;
