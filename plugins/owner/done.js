@@ -3,16 +3,17 @@
  * Instagram: https://instagram.com/zansxart
  */
 import { storeDB } from '../../lib/store-db.js';
-import { rp, usage, copyable } from '../../lib/format.js';
+import { rp, usage, copyable, resolveInvoice } from '../../lib/format.js';
 import { replyThumb, sendThumb } from '../../lib/ui.js';
 
 let handler = async (m, { conn, args, usedPrefix, command }) => {
-    let inv = args[0];
+    let inv = resolveInvoice(m, args[0]);
     if (!inv) return m.reply(usage({
         prefix: usedPrefix, command,
-        desc: 'Tandai transaksi selesai & kirim stok ke pembeli',
+        desc: 'Tandai transaksi selesai & kirim stok (bisa reply pesan invoice)',
         format: '<invoice>',
-        examples: 'INV-A3F2K9',
+        examples: 'INV-K7P2',
+        note: 'Atau cukup reply pesan bot yang memuat invoice, lalu ketik ' + (usedPrefix || '.') + command,
     }));
 
     let trx = storeDB.getTransaction(inv);

@@ -12,30 +12,28 @@
 
 import { storeDB } from '../../lib/store-db.js';
 import { settlePaid } from '../../lib/settle.js';
-import { rp, copyable } from '../../lib/format.js';
+import { rp, copyable, resolveInvoice } from '../../lib/format.js';
 import { sendThumb } from '../../lib/ui.js';
 
 let handler = async (m, { conn, args, text, usedPrefix, command, isOwner }) => {
     if (!isOwner) return m.reply(`❌ Perintah ini hanya untuk Owner.`);
 
-    let invoiceId = args[0];
+    // Invoice dari args[0] atau dari pesan yang di-reply.
+    let repliedInvoice = m.quoted ? resolveInvoice(m, null) : null;
+    let invoiceId = resolveInvoice(m, args[0]);
 
-    // Jika pesan mereply invoice
-    if (!invoiceId && m.quoted) {
-        let quotedText = m.quoted.text || m.quoted.caption || '';
-        let match = quotedText.match(/Invoice(?:\s*ID)?\s*:\s*(INV-[\w-]+)/i);
-        if (match) invoiceId = match[1];
-    }
+    // Isi pesanan (MODE 2): kalau reply, seluruh teks = isi; kalau ketik manual,
+    // isi = argumen setelah invoice.
+    let isiPesanan = repliedInvoice ? args.join(' ').trim() : args.slice(1).join(' ').trim();
 
     if (!invoiceId) {
-        return m.reply(`❌ Masukkan Invoice ID atau reply pesan tagihan invoice.\nContoh: *${usedPrefix}${command} INV-102938*\nAtau kirim pesanan: *${usedPrefix}${command} INV-102938 email: xxx | pass: xxx*`);
+        return m.reply(`❌ Masukkan Invoice ID atau reply pesan yang memuat invoice.\nContoh: *${usedPrefix}${command} INV-K7P2*\nKirim pesanan: *${usedPrefix}${command} INV-K7P2 email: xxx | pass: xxx*\nAtau reply pesan invoice + ketik isi akunnya.`);
     }
 
     let trx = storeDB.getTransaction(invoiceId);
     if (!trx) return m.reply(`❌ Transaksi ${invoiceId} tidak ditemukan.`);
 
     // ── MODE 2: .acc <invoice> <isi akun/produk> → kirim ke PC buyer ──
-    let isiPesanan = args.slice(1).join(' ').trim();
     if (isiPesanan) {
         if (trx.status === 'done' || trx.status === 'cancel') {
             return m.reply(`❌ Transaksi ${invoiceId} sudah berstatus '${trx.status}'.`);
